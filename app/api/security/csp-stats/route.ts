@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { cspMonitor } from '@/utils/csp-monitor';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const stats = cspMonitor.getStats();

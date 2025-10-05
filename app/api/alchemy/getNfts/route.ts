@@ -3,7 +3,7 @@ import { monadChain } from '@/config/chains';
 import { alchemyFetch } from '@/lib/alchemyFetch';
 import { z } from 'zod';
 
-// export const dynamic = 'force-dynamic'; // Disabled for static export
+export const dynamic = 'force-dynamic';
 
 // ERC-721 balanceOf function signature
 const BALANCE_OF_SIGNATURE = '0x70a08231';

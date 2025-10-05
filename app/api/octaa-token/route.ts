@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createPublicClient, http } from 'viem';
 import { monadChain } from '@/config/chains';
 
+export const dynamic = 'force-dynamic';
+
 // GeckoTerminal API for specific OCTAA pool on Monad Testnet
 const GECKO_TERMINAL_API = 'https://api.geckoterminal.com/api/v2';
 const OCTAA_TOKEN_ADDRESS = '0xBb526D657Cc1Ba772469A6EC96AcB2ed9D2A93e5';
@@ -34,6 +36,23 @@ const ERC20_ABI = [
 
 export async function GET() {
   try {
+    // Проверяем доступность fetch (может отсутствовать в build time)
+    if (typeof fetch === 'undefined') {
+      console.warn('fetch is not available during build time');
+      return NextResponse.json({
+        success: false,
+        error: 'Service temporarily unavailable',
+        data: {
+          priceUsd: 0,
+          volume24h: 0,
+          marketCap: 0,
+          totalSupply: '0',
+          deadBalance: '0',
+          timestamp: Date.now(),
+        },
+      });
+    }
+
     // Fetch OCTAA token data from GeckoTerminal
     const tokenUrl = `${GECKO_TERMINAL_API}/networks/${MONAD_NETWORK}/tokens/${OCTAA_TOKEN_ADDRESS}`;
     const tokenResponse = await fetch(tokenUrl);

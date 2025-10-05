@@ -4,7 +4,7 @@ import { monadChain } from '@/config/chains';
 import { nftAbi } from '@/config/abis/nftAbi';
 import { z } from 'zod';
 
-// export const dynamic = 'force-dynamic'; // Disabled for static export
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {

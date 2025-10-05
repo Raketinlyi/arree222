@@ -5,6 +5,8 @@ import {
   extractClientIp,
 } from '@/utils/security-admin-auth';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     // Get security statistics

@@ -12,8 +12,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const nextConfig = {
-  // Netlify configuration with static export
-  output: 'export',
+  // Netlify configuration - removed static export to support API routes
+  // output: 'export', // Commented out to enable API routes
   trailingSlash: true,
   distDir: 'out',
   

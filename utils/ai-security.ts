@@ -261,19 +261,35 @@ class AISecuritySystem {
     const secretKey = process.env.RECAPTCHA_SECRET_KEY;
     if (!secretKey) return 0;
 
-    const response = await fetch(
-      'https://www.google.com/recaptcha/api/siteverify',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: `secret=${secretKey}&response=${token}`,
+    try {
+      // Проверяем доступность fetch (может отсутствовать в build time)
+      if (typeof fetch === 'undefined') {
+        console.warn('fetch is not available during build time');
+        return 0;
       }
-    );
 
-    const data = await response.json();
-    return data.success ? data.score : 0;
+      const response = await fetch(
+        'https://www.google.com/recaptcha/api/siteverify',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `secret=${secretKey}&response=${token}`,
+        }
+      );
+
+      if (!response.ok) {
+        console.warn('reCAPTCHA verification failed:', response.status);
+        return 0;
+      }
+
+      const data = await response.json();
+      return data.success ? (data.score || 0) : 0;
+    } catch (error) {
+      console.warn('reCAPTCHA verification error:', error);
+      return 0;
+    }
   }
 
   private countPatternMatches(

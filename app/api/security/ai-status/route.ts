@@ -6,6 +6,8 @@ import {
   extractClientIp,
 } from '@/utils/security-admin-auth';
 
+export const dynamic = 'force-dynamic';
+
 type AiSecurityAction = 'analyze_request' | 'block_ip' | 'get_threat_patterns';
 
 type AiActionPayload = {

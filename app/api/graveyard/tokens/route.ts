@@ -24,7 +24,7 @@ const GAME_ABI = [
 ] as const;
 
 // Always execute server-side so we avoid browser CORS restrictions
-// export const dynamic = 'force-dynamic'; // Disabled for static export
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {

@@ -180,6 +180,11 @@ export const ultraSmartFetch = async (
   options: RequestInit = {},
   maxRetries = 6
 ): Promise<unknown> => {
+  // Проверяем доступность fetch (может отсутствовать в build time)
+  if (typeof fetch === 'undefined') {
+    throw new Error('fetch is not available during build time');
+  }
+
   let attempt = 0;
   let lastError: Error | null = null;
 

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { fetchMarketData } from '@/lib/market';
 import securityLogger from '@/utils/security-logger';
 
+export const dynamic = 'force-dynamic';
 export const revalidate = 180; // seconds
 
 export async function GET(request: Request) {

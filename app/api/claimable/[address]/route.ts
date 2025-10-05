@@ -4,6 +4,8 @@ import { createPublicClient, http, isAddress, decodeEventLog } from 'viem';
 import { monadChain } from '@/config/chains';
 import { CRAZY_OCTAGON_READER_ABI } from '@/lib/abi/crazyOctagon';
 
+export const dynamic = 'force-dynamic';
+
 type ClaimItem = {
   tokenId: string;
   owner: `0x${string}`;

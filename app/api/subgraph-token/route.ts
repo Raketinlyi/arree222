@@ -3,6 +3,8 @@ import crypto from 'crypto';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import { z } from 'zod';
 
+export const dynamic = 'force-dynamic';
+
 // URL for token subgraph (moni)
 const SUBGRAPH_URL =
   process.env.SUBGRAPH_URL_TOKEN ||

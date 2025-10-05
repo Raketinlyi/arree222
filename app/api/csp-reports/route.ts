@@ -3,6 +3,8 @@ import { z } from 'zod';
 import securityLogger from '@/utils/security-logger';
 import { extractClientIp } from '@/utils/security-admin-auth';
 
+export const dynamic = 'force-dynamic';
+
 // CSP Report schema validation
 const CspViolationSchema = z
   .object({

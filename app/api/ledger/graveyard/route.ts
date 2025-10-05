@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import ledgerData from '@/data/ledger.json';
 
-// export const dynamic = 'force-dynamic'; // Disabled for static export
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {

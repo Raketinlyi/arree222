@@ -64,6 +64,11 @@ export async function alchemyFetch(
   maxRetries = 5,
   options: AlchemyFetchOptions = {}
 ): Promise<Response> {
+  // Проверяем доступность fetch (может отсутствовать в build time)
+  if (typeof fetch === 'undefined') {
+    throw new Error('fetch is not available during build time');
+  }
+
   let delayMs = 2000; // start 2s (increased from 1s)
   const normalizedPath = path.toLowerCase();
   const breedKeyCandidate =
