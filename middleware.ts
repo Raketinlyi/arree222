@@ -34,6 +34,16 @@ const hashString = (value: string): string => {
   return (hash >>> 0).toString(16);
 };
 
+const generateNonce = (): string => {
+  const array = new Uint8Array(16);
+  crypto.getRandomValues(array);
+  let binary = '';
+  array.forEach(byte => {
+    binary += String.fromCharCode(byte);
+  });
+  return btoa(binary);
+};
+
 const getClientKey = (request: NextRequest): { ip: string; key: string } => {
   const headers = request.headers;
   const ipSources = [
@@ -125,6 +135,7 @@ export function middleware(request: NextRequest) {
     }
   }
 
+  const nonce = generateNonce();
   const response = NextResponse.next();
 
   // Enhanced security headers
@@ -145,7 +156,8 @@ export function middleware(request: NextRequest) {
   );
 
   // Enhanced, environment-aware Content Security Policy
-  // CRITICAL: CSP header for production - Netlify compatible
+  // NOTE: 'unsafe-inline' temporarily restored because nonce doesn't work on Netlify
+  // without server-side layout changes. Remove 'strict-dynamic' and add 'unsafe-inline' for now.
   const cspHeader = [
     `default-src 'self'`,
     `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.walletconnect.com https://*.walletconnect.org https://*.metamask.io https://*.rainbow.me https://*.coinbase.com https://*.trustwallet.com https://*.alchemy.com https://*.monad.xyz https://*.ethereum.org https://*.web3modal.com https://*.web3js.org https://cdn.jsdelivr.net https://unpkg.com https://*.cloudflare.com https://*.jsdelivr.net`,
@@ -164,6 +176,7 @@ export function middleware(request: NextRequest) {
   ].join('; ');
 
   response.headers.set('Content-Security-Policy', cspHeader);
+  response.headers.set('X-CSP-Nonce', nonce);
   response.headers.set('X-Request-ID', crypto.randomUUID());
 
   return response;

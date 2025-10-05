@@ -1,8 +1,7 @@
 name: Build and Deploy Subgraph
 
+# DISABLED AUTO-DEPLOY: only manual workflow_dispatch to save credits
 on:
-  push:
-    branches: [ main, master ]
   workflow_dispatch: {}
 
 jobs:
