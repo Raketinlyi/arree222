@@ -16,6 +16,8 @@ interface GraveTokenInfo {
   isOwnerMatch: boolean;
 }
 
+type BurnInfoTuple = readonly [`0x${string}`, bigint, bigint, bigint, boolean, number, bigint, bigint, bigint];
+
 export function ClaimDebug() {
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
@@ -23,13 +25,13 @@ export function ClaimDebug() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const READER_ADDR = (monadChain.contracts.reader?.address ??
+  const READER_ADDR = monadChain.contracts.reader?.address ??
     monadChain.contracts.lpManager?.address ??
-    monadChain.contracts.gameProxy!.address) as `0x${string}`;
+    monadChain.contracts.gameProxy?.address ?? null;
 
   useEffect(() => {
     const fetchGraveInfo = async () => {
-      if (!publicClient || !isConnected) {
+      if (!publicClient || !isConnected || !READER_ADDR) {
         setGraveInfo([]);
         return;
       }
@@ -70,33 +72,22 @@ export function ClaimDebug() {
         }
 
         // 2. For each ID, get its burn info
-        type BurnInfoTuple = readonly [
-          `0x${string}`,
-          bigint,
-          bigint,
-          bigint,
-          boolean,
-          number,
-          bigint,
-          bigint,
-          bigint
-        ];
-
         const infoPromises = ids.map(async (id) => {
           const info = (await publicClient.readContract({
             address: READER_ADDR,
             abi: CRAZY_OCTAGON_READER_ABI,
             functionName: 'getBurnInfo',
             args: [BigInt(id)],
-          })) as BurnInfoTuple;
+          })) as unknown as BurnInfoTuple;
 
+          const claimAtSeconds = Number(info[2]);
           const owner = info[0].toLowerCase();
           const connectedAddress = address?.toLowerCase();
 
           return {
             tokenId: id,
             owner: info[0],
-            claimAt: Number(info[2]),
+            claimAt: claimAtSeconds,
             claimed: info[4],
             isOwnerMatch: owner === connectedAddress,
           };

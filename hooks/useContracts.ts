@@ -53,22 +53,23 @@ export function useGetPlayerNfts() {
 
 // 2. Hook to get details for a single NFT
 export function useGetNftDetails(tokenId: bigint | number) {
-    const tokenIdBigInt = typeof tokenId === 'bigint' ? tokenId : BigInt(tokenId);
+    const normalizedTokenId = typeof tokenId === 'bigint' ? tokenId : BigInt(tokenId);
+
     const { data, isLoading, error } = useReadContracts({
         contracts: [
             {
                 ...coreContractConfig,
                 functionName: 'meta',
-                args: [tokenIdBigInt],
+                args: [normalizedTokenId],
             },
             {
                 ...coreContractConfig,
                 functionName: 'state',
-                args: [tokenIdBigInt],
+                args: [normalizedTokenId],
             },
         ],
         query: {
-            enabled: tokenIdBigInt !== undefined,
+            enabled: !!tokenId,
         }
     });
 
@@ -84,11 +85,12 @@ export function usePing() {
     const { toast } = useSimpleToast();
 
     const ping = (tokenId: bigint | number) => {
-        const tokenIdBigInt = typeof tokenId === 'bigint' ? tokenId : BigInt(tokenId);
+        const normalizedTokenId = typeof tokenId === 'bigint' ? tokenId : BigInt(tokenId);
+
         writeContract({
             ...coreContractConfig,
             functionName: 'ping',
-            args: [tokenIdBigInt],
+            args: [normalizedTokenId],
         }, {
             onSuccess: () => {
                 toast({
@@ -111,8 +113,7 @@ export function usePing() {
 
 // 4. Helper hook to determine if an NFT is pingable
 export function usePingability(tokenId: bigint | number) {
-    const tokenIdBigInt = typeof tokenId === 'bigint' ? tokenId : BigInt(tokenId);
-    const { state, meta, isLoading: isDetailsLoading } = useGetNftDetails(tokenIdBigInt);
+    const { state, meta, isLoading: isDetailsLoading } = useGetNftDetails(tokenId);
 
     const { data: pingInterval, isLoading: isIntervalLoading } = useReadContract({
         ...coreContractConfig,

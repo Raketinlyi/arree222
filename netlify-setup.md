@@ -14,8 +14,8 @@
 3. Выберите GitHub
 4. Выберите репозиторий: `Raketinlyi/aaaaarnaaa`
 5. Настройте параметры сборки:
-   - **Build command:** `pnpm build` *(если pnpm недоступен — установите его в разделе **Deploy settings → Build settings → Add build plugin → pnpm**, либо переключитесь на `npm run build`)*
-   - **Publish directory:** `.next`
+   - **Build command:** `npm run build` *(используем npm для совместимости)*
+   - **Publish directory:** `out` *(статический экспорт Next.js)*
    - **Node version:** `18`
 
 ### 2. Настройка переменных окружения

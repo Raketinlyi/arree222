@@ -24,34 +24,34 @@
       }
     },
     "burn": {
-      "title": "NFT Yak (Küpü Izgara Yap!)",
-      "description": "NFT yak ve OCTAA token kazan! Alevli ızgarada çığlık atan küpler: \"Anneme sevdiğimi söyle!\"",
+      "title": "NFT Yak (Oktagonu Izgara Yap!)",
+      "description": "NFT'yi yak ve OCTAA token kazan! Alevli ızgarada oktagonların \"Anneme sevdiğimi söyleyin!\" diye bağırdığını hayal et.",
       "button": "NFT Yak",
       "feeBox": {
         "title": "🔥 Yakma Ücreti ve Adımlar",
-        "line1": "• Yakma ücreti küp içindeki kilitli OCTAA'nın <1>%10</1>'idir.",
-        "line2": "• Yakma <1>üç onay</1> gerektirir:",
+        "line1": "• Yakma ücreti: kilitli OCTAA'nın <1>%10</1>'u.",
+        "line2": "• Yakma için <1>3 onay</1> gerekir.",
         "step1": "1. Sözleşmeye NFT'nizi taşıma izni verin.",
-        "step2": "2. Kilitli coinlerin %10'u için OCTAA harcamasına izin verin.",
-        "step3": "3. Son işlemi onayla — küp yanar, OCTAA sana geçer.",
-        "note": "Başlamadan önce cüzdanında ücret için yeterli OCTAA olduğundan emin ol.",
+        "step2": "2. Kilitli coinlerin %10'u için OCTAA harcamasını onaylayın.",
+        "step3": "3. Son işlemi onaylayın — oktagon yanar, OCTAA seçtiğiniz bekleme süresinden sonra size geçer.",
+        "note": "Başlamadan önce cüzdanınızda ücret için yeterli OCTAA olduğundan emin olun.",
         "guide": {
-          "title": "🔥 Yakma Rehberi Buraya tıkla",
-          "intro": "<div class='text-lg font-bold text-cyan-400 mb-2'>Bu oyun tamamen Monad Testnet blockchain üzerine inşa edilmiştir. Tüm oyun eylemleri akıllı sözleşmeler tarafından işlenir, web sitesi sadece bilgi görüntüleme görevi görür.</div>Yakmadan önce, çıkarılan OCTAA'yı açmak için MUTLAKA ping yap (her 7 günde bir).",
-          "loss": "Yakma sonrası NFT kalıcı olarak mezarlığa gönderilir. OCTAA ödüller bölümünden alınabilir.",
-          "step1": "1. Sözleşmeye NFT'ni taşıma izni ver.",
-          "step2": "2. Kilitli coinlerin %10'u için OCTAA harcamasına izin ver.",
-          "step3": "3. Son işlemi onayla — küp yanar, OCTAA sana geçer.",
-          "timing": "OCTAA seçilen gecikmeden (30m / 120m / 480m) sonra gelir. Bu süre boyunca küp gri olur (cooldown).",
-          "note": "Örnek: 10.000 OCTAA kilitli → ücret 1.000 OCTAA (%10). Daha uzun gecikme = daha küçük havuz payı.",
-          "pingLock": "Ping sırasında OCTAA cüzdana gitmez — NFT içinde kilitli kalır. Sadece yakarak çekilebilir.",
-          "bridgeNote": "Mezarlıktan NFT'yi 'Köprü' bölümünde dirilt. Küp sayısı 9700 ile sınırlı ve asla değişmez. Her eylemde yakılan OCTAA sonsuza dek ölü cüzdana gider — kimse geri alamaz.",
-          "sellOCTA": "OCTA Sat: <a>Camelot Exchange</a>",
-          "fees": "🔹 OCTAA Token Ücretleri • Transferlerde %3 ücret — oyun sözleşmesine gider • DEX satışlarında %10 ücret — oyun sözleşmesine gider • DEX alımlarında %0 ücret — alırken ücret yok • Tüm ücretler oyun ekosistemini ve ödül havuzunu destekler",
+          "title": "🔥 Yakma Rehberi",
+          "intro": "Son 7 gün içinde NFT'ni ping'le; çıkarılan OCTAA kilidi açılır — yakma tamamlandığında coinler seçtiğin bekleme süresi sonunda serbest kalır.",
+          "loss": "Yakılan NFT kalıcı olarak mezarlıkta kalır. Zamanlayıcı bittiğinde OCTAA cüzdanına gider — Claim bölümünden al. NFT Breed'den geldiyse LP payına kilitli MON'u da kazanır, böylece oktagon daha değerli olur.",
+          "step1": "1. Oyun sözleşmesine NFT'ni transfer etme izni ver.",
+          "step2": "2. Yakma ücreti için OCTAA harcamasını onayla (kilitli OCTAA'nın %10'u).",
+          "step3": "3. Yakma işlemini onayla. İşlem tamamlandığında oktagon yanar ve OCTAA seçtiğin bekleme süresi sonunda açılır.",
+          "timing": "OCTAA seçilen gecikmeden sonra açılır (30 dk / 120 dk / 480 dk). Bekleme sırasında oktagon Claim bölümünde gri görünür (cooldown).",
+          "note": "Örnek: 10.000 OCTAA kilitli → ücret 1.000 OCTAA (%10). Daha uzun gecikme havuz dağılımını değiştirir, ücreti değil.",
+          "pingLock": "Ping yalnızca ödül biriktirir — OCTAA yakmaya kadar kilitli kalır.",
+          "bridgeNote": "NFT'yi mezarlıktan geri getirmek için 'Köprü' bölümünü kullan. Koleksiyon yaklaşık 9.700 oktagonla sınırlıdır ve oyunda yakılan OCTAA sonsuza dek dead-wallet'a gider.",
+          "sellOCTA": "PancakeSwap'i aç — OCTAA takas et",
+          "fees": "🔹 OCTAA token ücretleri: kontrat içi işlemlerde %0 • transferlerde %3 (oyun sözleşmesine) • DEX satışlarında %10 (oyun sözleşmesine) • DEX alımlarında %0. Bu ücretler oyun ekonomisini ve ödül havuzlarını destekler.",
           "contractAddress": "OCTAA Token Sözleşmesi: 0xBb526D657Cc1Ba772469A6EC96AcB2ed9D2A93e5"
         }
       },
-      "noNFTsDescription": "Yakacak OCTAAzyCube NFT'niz yok"
+      "noNFTsDescription": "Yakacak CrazyOctagon NFT'niz yok"
     },
     "claim": {
       "title": "Talep Et (OCTAA Nerede?)",
@@ -228,18 +228,18 @@
         "confirmDialog": {
           "title": "NFT #{tokenId} Yak",
           "warning": "⚠️ ÖNEMLİ: Bu işlem geri alınamaz!",
-          "description": "NFT'niz kalıcı olarak yakılacak ve mezarlığa gönderilecek.",
+          "description": "NFT'niz kalıcı olarak yakılacak ve oktagon mezarlığına gönderilecek.",
           "waitPeriod": "Bekleme süresi:",
           "minutes": "dakika",
           "lockedCRAA": "Kilitli OCTAA:",
           "fee": "Ücret:",
-          "afterBurn": "Yakma sonrası alırsınız",
-          "poolReceives": "Havuz alır:",
-          "burnedForever": "Sonsuza dek yakıldı:",
+          "afterBurn": "Yakma sonrası alacağınız",
+          "poolReceives": "Havuzun payı:",
+          "burnedForever": "Sonsuza dek yakılan:",
           "transactions": "3 işlem imzalayacaksınız:",
-          "transaction1": "1️⃣ OCTAA ücretini onayla",
-          "transaction2": "2️⃣ NFT'yi onayla",
-          "transaction3": "3️⃣ NFT'yi yak",
+          "transaction1": "1️⃣ OCTAA ücretini onaylayın",
+          "transaction2": "2️⃣ NFT'yi onaylayın",
+          "transaction3": "3️⃣ NFT'yi yakın",
           "yourBalance": "OCTAA bakiyeniz:",
           "cancel": "İptal",
           "confirm": "Yakmayı Onayla",
@@ -766,6 +766,33 @@
       "Pşşş-pşşş! Her şey kontrol altında! 🚒",
       "Yangın nerede? Hepsini söndüreceğim! 🧯"
     ]
+  },
+  "cubeAnimation": {
+    "loading": "Yükleniyor...",
+    "loadingMessage": "Aman, site takıldı! Bir saniye, biz biraz tembeliz 🦥",
+    "speechBubbles": [
+      "Aynı yerde dönmekten sıkıldım! 🥱",
+      "Hey, diğer oktağonlar nereye gitti?! 😱",
+      "Ben de yuvarlanıp gidiyorum! 👋",
+      "Poligonal pizza alacağım! 🍕",
+      "Kenarlara parlaklık verme zamanı! 💅"
+    ],
+    "waitingForMusicPhrases": [
+      "Hey, müziği aç! 🎵",
+      "Müziksiz sıkıcı... 😴",
+      "Dans etmek istiyorum! Müziğe ihtiyacım var! 💃",
+      "Biri düğmeye bassın! 👆"
+    ],
+    "musicOn": "Müziği Kapat",
+    "musicOff": "Müziği Aç",
+    "newCubePhrases": {
+      "turnOnMusic": "Okta-jam'leri aç",
+      "wantToParty": "Oktağan partisine hazırım",
+      "settingUpTestnet": "Monad testnet'i kuruyoruz",
+      "testnetLikeDraft": "Testnet, gerçekte dönen bir taslaktır!",
+      "settingUpWithLove": "Her kenarı yamuk ayarlıyoruz ama sevgiyle!",
+      "testnetBugsFeatures": "Testnet hayatı: hatalar onurlu özelliklerdir!"
+    }
   },
   "cubeObservers": {
     "idlePhrases": [
