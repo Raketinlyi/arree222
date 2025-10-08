@@ -9,13 +9,28 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
+    const auth = evaluateAdminRequest(req);
     // Get security statistics
     const stats = securityLogger.getSecurityStats();
     const blockedIPs = securityLogger.getBlockedIPs();
 
-    // Only return summary for security reasons
+    const baseStatus = (() => {
+      if (stats.attackCount > 10) return 'alert';
+      if (stats.eventsLastHour > 100) return 'warning';
+      return 'secure';
+    })();
+
+    if (!auth.authorized) {
+      return new NextResponse(null, {
+        status: 204,
+        headers: {
+          'Cache-Control': 'no-store',
+        },
+      });
+    }
+
     const securityStatus = {
-      status: 'secure',
+      status: baseStatus,
       timestamp: new Date().toISOString(),
       statistics: {
         totalEvents: stats.totalEvents,
@@ -42,15 +57,6 @@ export async function GET(req: NextRequest) {
         nodeVersion: process.version,
       },
     };
-
-    // Add warning if high activity detected
-    if (stats.eventsLastHour > 100) {
-      securityStatus.status = 'warning';
-    }
-
-    if (stats.attackCount > 10) {
-      securityStatus.status = 'alert';
-    }
 
     return NextResponse.json(securityStatus, {
       headers: {

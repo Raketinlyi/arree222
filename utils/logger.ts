@@ -2,6 +2,8 @@
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
+const SENSITIVE_PATTERN = /authorization|cookie|token|secret|seed|mnemonic/i;
+
 interface LogEntry {
   timestamp: string;
   level: LogLevel;
@@ -33,6 +35,27 @@ export class Logger {
     this.log('error', message, data, file, line);
   }
 
+  private static containsSensitive(value: unknown): boolean {
+    if (value == null) return false;
+
+    if (typeof value === 'string') {
+      return SENSITIVE_PATTERN.test(value);
+    }
+
+    if (Array.isArray(value)) {
+      return value.some(item => Logger.containsSensitive(item));
+    }
+
+    if (typeof value === 'object') {
+      const entries = Object.entries(value as Record<string, unknown>);
+      return entries.some(([key, val]) =>
+        SENSITIVE_PATTERN.test(key) || Logger.containsSensitive(val)
+      );
+    }
+
+    return false;
+  }
+
   private log(
     level: LogLevel,
     message: string,
@@ -40,6 +63,16 @@ export class Logger {
     file?: string,
     line?: number
   ): void {
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    if (Logger.containsSensitive(message) || Logger.containsSensitive(data)) {
+      return;
+    }
+
+    if (isProduction && (level === 'debug' || level === 'info')) {
+      return;
+    }
+
     const timestamp = new Date().toISOString();
 
     // Safely convert data to string
@@ -77,10 +110,7 @@ export class Logger {
     }
 
     // Output to console only in development
-    if (
-      process.env.NODE_ENV !== 'production' &&
-      typeof console !== 'undefined'
-    ) {
+    if (!isProduction && typeof console !== 'undefined') {
       const consoleMethod =
         level === 'error'
           ? console.error

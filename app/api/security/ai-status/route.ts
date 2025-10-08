@@ -74,12 +74,25 @@ const handleAiSecurityAction = async (
 
 export async function GET(req: NextRequest) {
   try {
+    const auth = evaluateAdminRequest(req);
+
     // Get AI security statistics
     const stats = aiSecurity.getSecurityStats();
+    const baseStatus = stats.eventsLastHour > 50
+      ? (stats.threatsDetected > 5 ? 'alert' : 'warning')
+      : 'operational';
 
-    // Get recent security events (last 10)
+    if (!auth.authorized) {
+      return new NextResponse(null, {
+        status: 204,
+        headers: {
+          'Cache-Control': 'no-store',
+        },
+      });
+    }
+
     const aiStatus = {
-      status: 'operational',
+      status: baseStatus,
       timestamp: new Date().toISOString(),
       aiSystem: {
         accuracy: stats.aiAccuracy,
@@ -100,15 +113,6 @@ export async function GET(req: NextRequest) {
         nodeVersion: process.version,
       },
     };
-
-    // Add warning if high activity detected
-    if (stats.eventsLastHour > 50) {
-      aiStatus.status = 'warning';
-    }
-
-    if (stats.threatsDetected > 5) {
-      aiStatus.status = 'alert';
-    }
 
     return NextResponse.json(aiStatus, {
       headers: {
