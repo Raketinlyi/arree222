@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Loader2, Skull, TimerReset, Coins } from 'lucide-react';
 import {
   AlchemyNFT,
-  getNFTImage,
   getTokenIdAsDecimal,
 } from '@/hooks/useUserNFTs';
 import {
@@ -17,6 +15,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 
 import { useTranslation } from 'react-i18next';
+import { IpfsImage } from '@/components/IpfsImage';
 
 interface NFTGraveyardCardProps {
   nft: AlchemyNFT;
@@ -109,23 +108,20 @@ export default function NFTGraveyardCard({
     <motion.div
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
+      transition={{ delay: index * 0.15, duration: 0.3 }}
       className='scale-[0.9]'
     >
       <Card className='bg-gradient-to-br from-gray-800/80 to-slate-800/80 border border-gray-600/30 hover:border-gray-400/60'>
         <CardHeader>
           <div className='aspect-square relative overflow-hidden rounded-lg burned-img'>
-            {getNFTImage(nft) ? (
-              <Image
-                src={getNFTImage(nft)}
-                alt={`Cube #${tokenIdDec}`}
-                width={200}
-                height={200}
-                className='w-full h-full object-cover grayscale brightness-75'
-              />
-            ) : (
-              <div className='w-full h-full bg-gray-700 flex items-center justify-center' />
-            )}
+            <IpfsImage
+              src="" // Не используем внешний src, только tokenId
+              alt={`Cube #${tokenIdDec}`}
+              width={200}
+              height={200}
+              className='w-full h-full object-cover grayscale brightness-75'
+              tokenId={tokenIdDec} // Передаем tokenId для локального изображения
+            />
             <div className='absolute inset-0 bg-black/50 flex items-center justify-center'>
               <Skull className='w-10 h-10 text-red-600' />
             </div>

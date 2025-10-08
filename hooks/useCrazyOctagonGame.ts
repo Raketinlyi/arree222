@@ -114,7 +114,7 @@ export const useCrazyOctagonGame = () => {
     error: txError,
   } = useWaitForTransactionReceipt({ hash: txHash });
 
-  // Read OCTAA balance
+  // Read OCTAA balance - обновляется каждые 3 секунды
   const { data: octaaBalance, refetch: refetchOctaaBalance } = useReadContract({
     address: OCTAA_TOKEN_ADDRESS,
     abi: OCTAA_TOKEN_ABI,
@@ -122,45 +122,49 @@ export const useCrazyOctagonGame = () => {
     args: address ? [address] : undefined,
     query: {
       enabled: !!address,
-      staleTime: 60_000,
+      staleTime: 3_000, // 3 секунды для частого обновления баланса после покупки
       gcTime: 5 * 60_000,
-      retry: 3, // Increased retry count
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
-      retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 5_000), // Faster retry
+      retry: 3,
+      refetchOnWindowFocus: true, // Обновлять при возврате на вкладку
+      refetchOnReconnect: true,
+      refetchInterval: 3_000, // Автообновление каждые 3 секунды
+      retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 5_000),
     },
   });
 
-  // Read OCTA balance
-  const { data: octaBalance } = useReadContract({
+  // Read OCTA balance - обновляется каждые 3 секунды
+  const { data: octaBalance, refetch: refetchOctaBalance } = useReadContract({
     address: OCTA_TOKEN_ADDRESS,
     abi: OCTAA_TOKEN_ABI,
     functionName: 'balanceOf',
     args: address ? [address] : undefined,
     query: {
       enabled: !!address,
-      staleTime: 60_000,
+      staleTime: 3_000, // 3 секунды для частого обновления баланса
       gcTime: 5 * 60_000,
-      retry: 3, // Increased retry count
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
-      retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 5_000), // Faster retry
+      retry: 3,
+      refetchOnWindowFocus: true, // Обновлять при возврате на вкладку
+      refetchOnReconnect: true,
+      refetchInterval: 3_000, // Автообновление каждые 3 секунды
+      retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 5_000),
     },
   });
 
-  // Read breed quote from reader contract (contains both OCTA + OCTAA costs)
-  const { data: breedQuote } = useReadContract({
+  // Read breed quote from reader contract - обновляется каждые 5 секунд
+  // Бот меняет курс раз в 10 минут, мы проверяем каждые 5 секунд
+  const { data: breedQuote, refetch: refetchBreedQuote } = useReadContract({
     address: READER_CONTRACT_ADDRESS,
     abi: READER_ABI,
     functionName: 'getBreedQuote',
     query: {
       enabled: true,
-      staleTime: 60_000,
+      staleTime: 5_000, // 5 секунд для частого обновления курса
       gcTime: 5 * 60_000,
-      retry: 3, // Increased retry count
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
-      retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 5_000), // Faster retry
+      retry: 3,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+      refetchInterval: 5_000, // Автообновление курса каждые 5 секунд
+      retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 5_000),
     },
   });
 
@@ -724,6 +728,8 @@ export const useCrazyOctagonGame = () => {
     approveNFT,
     getBurnSplit,
     refetchOctaaBalance,
+    refetchOctaBalance,
+    refetchBreedQuote,
   getLPInfo,
 
     // Contract addresses for external use

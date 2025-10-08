@@ -8,4 +8,4 @@ Disallow: /.well-known/
 Disallow: /_next/
 
 # Sitemap
-Sitemap: https://crazycube.com/sitemap.xml 
+Sitemap: https://crazyoctagon.xyz/sitemap.xml

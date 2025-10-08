@@ -59,15 +59,31 @@ export const BurningGraveyardCard = memo(function BurningGraveyardCard({
     return () => clearInterval(id);
   }, []);
 
-  // Trigger burning effect automatically after 2 seconds
+  // Trigger burning effect in batches: ALL NFTs burn in groups of 5
   useEffect(() => {
     // запускать анимацию только если ещё не «сгорела» эта карточка в текущей сессии
     if (burnedRef.current) return;
+    
+    // ВСЕ NFT горят группами по 5: 0-4, 5-9, 10-14, и т.д.
+    const BATCH_SIZE = 5;
+    const BURN_DURATION = 4000; // 4 секунды на горение
+    const SPREAD_IN_BATCH = 800; // 800ms разброс внутри группы (последний начнет через 800мс после первого)
+    const PAUSE_AFTER_BATCH = 2000; // 2 секунды пауза ПОСЛЕ полного догорания группы
+    
+    const batchIndex = Math.floor(index / BATCH_SIZE); // Какая группа: 0, 1, 2...
+    const indexInBatch = index % BATCH_SIZE; // Позиция в группе: 0-4
+    
+    // Задержка = (номер группы) * (время горения + разброс + пауза после) + позиция в группе
+    // Группа 1 (0-4): начинают в 2.0, 2.2, 2.4, 2.6, 2.8 → догорают к 6.8 → пауза 2с → следующая группа в 8.8
+    const batchDelay = batchIndex * (BURN_DURATION + SPREAD_IN_BATCH + PAUSE_AFTER_BATCH);
+    const spreadInBatch = indexInBatch * 200; // 0, 200, 400, 600, 800ms разброс
+    
     const timer = setTimeout(() => {
       if (!burnedRef.current) setIsBurning(true);
-    }, 2000);
+    }, 2000 + batchDelay + spreadInBatch);
+    
     return () => clearTimeout(timer);
-  }, []);
+  }, [index]);
 
   const handleBurnComplete = () => {
     // После завершения — пустое окно вместо изображения, карточка остаётся
@@ -112,7 +128,6 @@ export const BurningGraveyardCard = memo(function BurningGraveyardCard({
                 alt={`Cube #${tokenId}`}
                 fill
                 className='object-cover'
-                priority={index < 4}
                 style={{ filter: `brightness(${brightness})` }}
               />
             ) : (

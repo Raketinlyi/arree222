@@ -1,6 +1,14 @@
-// API client with error handling and retry logic
+﻿// API client with error handling and retry logic
 
 import { ultraSmartFetch, getBestEndpoint } from './alchemyKey';
+
+type RpcParam =
+  | string
+  | number
+  | boolean
+  | null
+  | Record<string, unknown>
+  | RpcParam[];
 
 export class ApiError extends Error {
   constructor(
@@ -18,14 +26,164 @@ export interface RequestOptions {
   body?: { [key: string]: unknown };
   retries?: number;
   retryDelay?: number;
+  _skipLogChunking?: boolean; // internal flag to avoid recursion
 }
+
+export interface RpcBatchCall {
+  method: string;
+  params?: RpcParam[];
+}
+
+export async function rpcBatchRequest<T = unknown>(
+  calls: RpcBatchCall[],
+  options: RequestOptions = {}
+): Promise<T[]> {
+  if (calls.length === 0) {
+    return [];
+  }
+  const payload = calls.map((call, index) => ({
+    jsonrpc: '2.0',
+    method: call.method,
+    params: call.params ?? [],
+    id: Math.floor(Math.random() * 10000) + index,
+  }));
+
+  try {
+    const result = await ultraSmartFetch(
+      payload,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+      },
+      options.retries || 6
+    );
+
+    if (!Array.isArray(result)) {
+      throw new ApiError('Malformed RPC batch response', 500);
+    }
+
+    return result.map(entry => {
+      if (entry?.error) {
+        throw new ApiError(
+          `RPC Error: ${entry.error.message}`,
+          entry.error.code ?? 500
+        );
+      }
+      return entry?.result as T;
+    });
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new ApiError(`Network error: ${errorMessage}`, 503);
+  }
+}
+
+const LOG_CHUNK_SIZE = 10;
+const LOG_BATCH_SIZE = 5;
+
+const numberToHex = (value: number): string =>
+  `0x${value.toString(16)}`;
+
+const sanitizeBlockTag = async (
+  tag: string | undefined,
+  options: RequestOptions
+): Promise<number> => {
+  if (!tag || tag === 'latest' || tag === 'pending') {
+    const latest = await rpcRequest<string>(
+      'eth_blockNumber',
+      [],
+      { ...options, _skipLogChunking: true }
+    );
+    return parseInt(latest, 16);
+  }
+
+  if (tag === 'earliest') {
+    return 0;
+  }
+
+  if (tag.startsWith('0x')) {
+    return parseInt(tag, 16);
+  }
+
+  const numeric = Number(tag);
+  if (Number.isNaN(numeric)) {
+    throw new ApiError(`Invalid block tag: ${tag}`, 400);
+  }
+  return numeric;
+};
+
+const fetchLogsInChunks = async (
+  params: RpcParam[],
+  options: RequestOptions
+): Promise<unknown[]> => {
+  const rawFilter = (params[0] ?? {}) as Record<string, unknown>;
+  const filter = { ...rawFilter };
+
+  const fromBlock = await sanitizeBlockTag(
+    typeof filter.fromBlock === 'string' ? (filter.fromBlock as string) : undefined,
+    options
+  );
+  const toBlock = await sanitizeBlockTag(
+    typeof filter.toBlock === 'string' ? (filter.toBlock as string) : undefined,
+    options
+  );
+
+  const calls: RpcBatchCall[] = [];
+  if (toBlock < fromBlock) {
+    return [];
+  }
+
+  for (let start = fromBlock; start <= toBlock; start += LOG_CHUNK_SIZE) {
+    const end = Math.min(start + LOG_CHUNK_SIZE - 1, toBlock);
+    calls.push({
+      method: 'eth_getLogs',
+      params: [
+        {
+          ...filter,
+          fromBlock: numberToHex(start),
+          toBlock: numberToHex(end),
+        } as Record<string, unknown>,
+      ],
+    });
+  }
+
+  if (calls.length === 0) {
+    return [];
+  }
+
+  const aggregated: unknown[] = [];
+  for (let i = 0; i < calls.length; i += LOG_BATCH_SIZE) {
+    const slice = calls.slice(i, i + LOG_BATCH_SIZE);
+    const results = await rpcBatchRequest<unknown[]>(
+      slice,
+      { ...options, _skipLogChunking: true }
+    );
+    results.forEach(res => {
+      if (Array.isArray(res)) {
+        aggregated.push(...res);
+      }
+    });
+  }
+
+  return aggregated;
+};
 
 // Multi-tier RPC client with automatic fallbacks
 export async function rpcRequest<T>(
   method: string,
-  params: (string | { [key: string]: string })[] = [],
+  params: RpcParam[] = [],
   options: RequestOptions = {}
 ): Promise<T> {
+  if (method === 'eth_getLogs' && !options._skipLogChunking) {
+    const logs = await fetchLogsInChunks(params, options);
+    return logs as unknown as T;
+  }
+
   const requestData = {
     jsonrpc: '2.0',
     method,
@@ -46,7 +204,10 @@ export async function rpcRequest<T>(
       options.retries || 6
     );
 
-    const typedResult = result as { error?: { message: string; code?: number }; result?: T };
+    const typedResult = result as {
+      error?: { message: string; code?: number };
+      result?: T;
+    };
     if (typedResult.error) {
       throw new ApiError(
         `RPC Error: ${typedResult.error.message}`,
@@ -59,11 +220,8 @@ export async function rpcRequest<T>(
     if (error instanceof ApiError) {
       throw error;
     }
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      throw new ApiError(
-        `Network error: ${errorMessage}`,
-        503
-      );
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new ApiError(`Network error: ${errorMessage}`, 503);
   }
 }
 
@@ -86,9 +244,22 @@ export async function apiRequest<T>(
 
     // Replace URL with best available endpoint
     if (endpoint.type !== 'alchemy') {
-      // Convert to RPC request if using fallback
-      const urlPath = url.split('/').pop() || '';
-      return rpcRequest(method.toLowerCase(), [urlPath], options);
+      if (body && typeof body === 'object' && 'method' in body) {
+        const rpcBody = body as { method?: string; params?: RpcParam[] };
+        if (rpcBody.method) {
+          return rpcRequest(
+            rpcBody.method,
+            rpcBody.params ?? [],
+            { ...options, _skipLogChunking: true }
+          );
+        }
+      }
+
+      const rpcMethod = url.split('/').pop() || '';
+      if (!rpcMethod) {
+        throw new ApiError('Unsupported Alchemy REST fallback', 503);
+      }
+      return rpcRequest(rpcMethod, [], { ...options, _skipLogChunking: true });
     }
   }
 
@@ -221,3 +392,4 @@ export const api = {
 
   // Add other API methods here
 };
+

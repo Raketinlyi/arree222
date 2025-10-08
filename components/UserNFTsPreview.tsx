@@ -266,9 +266,10 @@ function NFTCard({ nft, pingInterval, breedCooldown }: NFTCardProps) {
       {/* NFT Image */}
       <div className='relative mb-1.5 aspect-square'>
         <IpfsImage
-          src={nft.image}
+          src="" // Не используем внешний src, только tokenId
           alt={nft.name || `NFT #${nft.tokenId}`}
           className='w-full h-full object-cover rounded-md'
+          tokenId={String(nft.tokenId)} // Передаем tokenId для локального изображения
         />
         {/* Rarity Badge */}
         {(() => {

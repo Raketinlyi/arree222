@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 import { motion } from 'framer-motion';
@@ -19,12 +19,12 @@ import Image from 'next/image';
 import { BreedingEffect } from '@/components/breeding-effect';
 
 import { useCrazyOctagonGame } from '@/hooks/useCrazyOctagonGame';
+import { IpfsImage } from '@/components/IpfsImage';
 import { usePublicClient, useAccount, useConnect, useChainId } from 'wagmi';
 import { parseEther, formatEther, decodeEventLog, parseAbiItem } from 'viem';
 import { CRAZY_OCTAGON_CORE_ABI } from '@/lib/abi/crazyOctagon';
 
 import { BreedCard } from '@/components/BreedCard';
-import { resolveIpfsUrl } from '@/lib/ipfs';
 // import dynamic from 'next/dynamic';
 
 import {
@@ -33,6 +33,16 @@ import {
   AccordionTrigger,
   AccordionContent,
 } from '@/components/ui/accordion';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import CubeObservers from '@/components/breeding-cube-observers';
 import { useLiveBredCubes } from '@/hooks/useLiveBredCubes';
 import { BreedingResultModal } from '@/components/breeding-result-modal';
@@ -54,7 +64,7 @@ import { formatSmart } from '@/utils/formatNumber';
 export default function BreedPage() {
   const { isConnected: connected, address: account } = useAccount();
   const { connect, connectors } = useConnect();
-  const chainId = useChainId(); // 🔒 Chain ID для защиты от wrong network
+  const chainId = useChainId(); // рџ”’ Chain ID РґР»СЏ Р·Р°С‰РёС‚С‹ РѕС‚ wrong network
   const {
     data: allNFTs = [],
     error: allNFTsError,
@@ -84,7 +94,7 @@ export default function BreedPage() {
       }
       @keyframes scanLine {
   0% { transform: translateX(-100%); }
-  /* Ограничиваем движение в пределах родителя, вместо 100vw */
+  /* РћРіСЂР°РЅРёС‡РёРІР°РµРј РґРІРёР¶РµРЅРёРµ РІ РїСЂРµРґРµР»Р°С… СЂРѕРґРёС‚РµР»СЏ, РІРјРµСЃС‚Рѕ 100vw */
   100% { transform: translateX(100%); }
       }
       @keyframes hologramFlicker {
@@ -119,7 +129,7 @@ export default function BreedPage() {
   useEffect(() => {
     if (allNFTs && allNFTs.length > 0) {
       setUserNFTs(prevNFTs => {
-        // Только обновляем если данные действительно изменились
+        // РўРѕР»СЊРєРѕ РѕР±РЅРѕРІР»СЏРµРј РµСЃР»Рё РґР°РЅРЅС‹Рµ РґРµР№СЃС‚РІРёС‚РµР»СЊРЅРѕ РёР·РјРµРЅРёР»РёСЃСЊ
         if (prevNFTs.length !== allNFTs.length || 
             JSON.stringify(prevNFTs.map(n => n.tokenId)) !== JSON.stringify(allNFTs.map(n => n.tokenId))) {
           return allNFTs;
@@ -202,7 +212,7 @@ export default function BreedPage() {
   const [showBreedingEffect, setShowBreedingEffect] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [isApprovingTokens, setIsApprovingTokens] = useState(false); // Новое состояние для апрувов
+  const [isApprovingTokens, setIsApprovingTokens] = useState(false); // РќРѕРІРѕРµ СЃРѕСЃС‚РѕСЏРЅРёРµ РґР»СЏ Р°РїСЂСѓРІРѕРІ
   const [selectedNFTsData, setSelectedNFTsData] = useState<{
     [tokenId: number]: { currentStars: number; isActivated: boolean; gender: 1 | 2 | 0 };
   }>({});
@@ -210,6 +220,11 @@ export default function BreedPage() {
   // Local fallback result (if event watchers lag)
   const [resultTokenId, setResultTokenId] = useState<number | null>(null);
   const [resultBonusStars, setResultBonusStars] = useState<number>(0);
+  
+  // Р—Р°С‰РёС‚Р° РѕС‚ РёР·РјРµРЅРµРЅРёСЏ РєСѓСЂСЃР° (РєР°Рє РЅР° DEX)
+  const [initialBreedCost, setInitialBreedCost] = useState<string | null>(null);
+  const [showRateChangedDialog, setShowRateChangedDialog] = useState(false);
+  const [newBreedCost, setNewBreedCost] = useState<string | null>(null);
 
   const { getNFTGameData } = useCrazyOctagonGame();
   const {
@@ -231,6 +246,9 @@ export default function BreedPage() {
     OCTA_TOKEN_ADDRESS,
     OCTAA_TOKEN_ABI,
     GAME_CONTRACT_ADDRESS,
+    refetchBreedQuote,
+    refetchOctaaBalance,
+    refetchOctaBalance,
   } = useCrazyOctagonGame();
 
   // Use same reader-based readiness logic as the Graveyard page
@@ -245,7 +263,7 @@ export default function BreedPage() {
     setMounted(true);
   }, []);
 
-  // Реальная проверка готовности кладбища из контракта
+  // Р РµР°Р»СЊРЅР°СЏ РїСЂРѕРІРµСЂРєР° РіРѕС‚РѕРІРЅРѕСЃС‚Рё РєР»Р°РґР±РёС‰Р° РёР· РєРѕРЅС‚СЂР°РєС‚Р°
   const [isGraveyardContractReady, setIsGraveyardContractReady] = useState(false);
   
   useEffect(() => {
@@ -265,7 +283,7 @@ export default function BreedPage() {
     };
     
     checkGraveyardReady();
-    const interval = setInterval(checkGraveyardReady, 30000); // Проверяем каждые 30 секунд
+    const interval = setInterval(checkGraveyardReady, 30000); // РџСЂРѕРІРµСЂСЏРµРј РєР°Р¶РґС‹Рµ 30 СЃРµРєСѓРЅРґ
     return () => clearInterval(interval);
   }, [publicClient, GAME_CONTRACT_ADDRESS]);
   const tr = useCallback(
@@ -332,13 +350,13 @@ export default function BreedPage() {
       toast({
         title: tr(
           'sections.breed.breedingSuccessful',
-          'Breeding Successful! 💕'
+          'Breeding Successful! рџ’•'
         ),
         description: tr('sections.breed.updatingData', 'Waiting for new NFT...'),
       });
 
-      // НЕ включаем setIsRefreshing здесь - модальное окно само покажет результат
-      // setIsRefreshing будет выключен при закрытии модального окна
+      // РќР• РІРєР»СЋС‡Р°РµРј setIsRefreshing Р·РґРµСЃСЊ - РјРѕРґР°Р»СЊРЅРѕРµ РѕРєРЅРѕ СЃР°РјРѕ РїРѕРєР°Р¶РµС‚ СЂРµР·СѓР»СЊС‚Р°С‚
+      // setIsRefreshing Р±СѓРґРµС‚ РІС‹РєР»СЋС‡РµРЅ РїСЂРё Р·Р°РєСЂС‹С‚РёРё РјРѕРґР°Р»СЊРЅРѕРіРѕ РѕРєРЅР°
     },
     [addBredNFTsCooldown, toast, tr]
   );
@@ -454,7 +472,7 @@ export default function BreedPage() {
         if (!(g1 === 1 || g1 === 2) || !(g2 === 1 || g2 === 2)) {
           toast({
             title: tr('sections.breed.genderUnknown', 'Gender unknown'),
-            description: tr('sections.breed.genderUnknownDesc', 'Both specimens must have a defined gender (♂ or ♀).'),
+            description: tr('sections.breed.genderUnknownDesc', 'Both specimens must have a defined gender (в™‚ or в™Ђ).'),
             variant: 'destructive',
           });
           return;
@@ -464,7 +482,7 @@ export default function BreedPage() {
             title: tr('sections.breed.genderMismatch', 'Select opposite genders'),
             description: tr(
               'sections.breed.genderMismatchDesc',
-              'You need one male (♂) and one female (♀) to breed.'
+              'You need one male (в™‚) and one female (в™Ђ) to breed.'
             ),
             variant: 'destructive',
           });
@@ -569,24 +587,24 @@ export default function BreedPage() {
         title: tr('sections.breed.genderMismatch', 'Select opposite genders'),
         description: tr(
           'sections.breed.genderMismatchDesc',
-          'You need one male (♂) and one female (♀) to breed.'
+          'You need one male (в™‚) and one female (в™Ђ) to breed.'
         ),
         variant: 'destructive',
       });
       return;
     }
 
-    // 🔒 КРИТИЧНО: Проверка chain ID для защиты пользователя от потери средств
+    // рџ”’ РљР РРўРР§РќРћ: РџСЂРѕРІРµСЂРєР° chain ID РґР»СЏ Р·Р°С‰РёС‚С‹ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РѕС‚ РїРѕС‚РµСЂРё СЃСЂРµРґСЃС‚РІ
     if (chainId !== 10143) {
       toast({
-        title: '⚠️ Wrong Network',
+        title: 'вљ пёЏ Wrong Network',
         description: 'Please switch to Monad Testnet (Chain ID: 10143) in your wallet before breeding.',
         variant: 'destructive',
       });
       return;
     }
 
-    // Проверка готовности кладбища ПЕРЕД любыми транзакциями
+    // РџСЂРѕРІРµСЂРєР° РіРѕС‚РѕРІРЅРѕСЃС‚Рё РєР»Р°РґР±РёС‰Р° РџР•Р Р•Р” Р»СЋР±С‹РјРё С‚СЂР°РЅР·Р°РєС†РёСЏРјРё
     try {
       if (publicClient) {
         const graveyardReady = await publicClient.readContract({
@@ -597,7 +615,7 @@ export default function BreedPage() {
         
         if (!graveyardReady) {
           toast({
-            title: '⚰️ Graveyard Not Ready',
+            title: 'вљ°пёЏ Graveyard Not Ready',
             description: 'No NFTs available for revival. Wait for burned NFTs to become ready or ask someone to burn an NFT.',
             variant: 'destructive',
           });
@@ -608,7 +626,33 @@ export default function BreedPage() {
       console.error('Failed to check graveyard status:', err);
     }
 
-    // Pre-checks
+    // РљР РРўРР§РќРћ: РћР±РЅРѕРІРёС‚СЊ РєСѓСЂСЃ Рё Р±Р°Р»Р°РЅСЃС‹ РїРµСЂРµРґ С‚СЂР°РЅР·Р°РєС†РёРµР№ (Р±РѕС‚ РјРµРЅСЏРµС‚ РєСѓСЂСЃ СЂР°Р· РІ 10 РјРёРЅСѓС‚)
+    try {
+      await Promise.all([
+        refetchBreedQuote(),
+        refetchOctaaBalance(),
+        refetchOctaBalance(),
+      ]);
+    } catch (error) {
+      console.warn('Failed to refresh breed rate/balances before transaction:', error);
+      // РџСЂРѕРґРѕР»Р¶Р°РµРј, РЅРѕ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ РїСЂРµРґСѓРїСЂРµР¶РґРµРЅ
+    }
+
+    // Р—РђР©РРўРђ РћРў РР—РњР•РќР•РќРРЇ РљРЈР РЎРђ (РєР°Рє РЅР° DEX СЃРІР°РїР°Р»РєР°С…)
+    if (initialBreedCost && breedCost && initialBreedCost !== breedCost) {
+      const oldCost = Number(initialBreedCost);
+      const newCost = Number(breedCost);
+      const changePercent = ((newCost - oldCost) / oldCost * 100).toFixed(2);
+      
+      // РџРѕРєР°Р·Р°С‚СЊ РїСЂРµРґСѓРїСЂРµР¶РґРµРЅРёРµ
+      setNewBreedCost(breedCost);
+      setShowRateChangedDialog(true);
+      
+      // РћСЃС‚Р°РЅРѕРІРёС‚СЊ РІС‹РїРѕР»РЅРµРЅРёРµ - РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ РґРѕР»Р¶РµРЅ РїРѕРґС‚РІРµСЂРґРёС‚СЊ
+      return;
+    }
+
+    // Pre-checks (РёСЃРїРѕР»СЊР·СѓРµРј РѕР±РЅРѕРІР»РµРЅРЅС‹Рµ Р·РЅР°С‡РµРЅРёСЏ РїРѕСЃР»Рµ refetch)
     const costWei = parseEther(breedCost || '0');
     if (octaaBalance && BigInt(parseEther(octaaBalance)) < costWei) {
       toast({
@@ -638,8 +682,8 @@ export default function BreedPage() {
       // Check allowance
       if (!publicClient) throw new Error('No RPC client');
 
-      // ШАГ 1: Проверка и апрув CRAA
-      setIsApprovingTokens(true); // Включаем индикатор апрувов
+      // РЁРђР“ 1: РџСЂРѕРІРµСЂРєР° Рё Р°РїСЂСѓРІ CRAA
+      setIsApprovingTokens(true); // Р’РєР»СЋС‡Р°РµРј РёРЅРґРёРєР°С‚РѕСЂ Р°РїСЂСѓРІРѕРІ
       
       const allowance: bigint = (await publicClient.readContract({
         address: OCTAA_TOKEN_ADDRESS as `0x${string}`,
@@ -666,7 +710,7 @@ export default function BreedPage() {
         });
       }
 
-      // ШАГ 2: Проверка и апрув OCTA
+      // РЁРђР“ 2: РџСЂРѕРІРµСЂРєР° Рё Р°РїСЂСѓРІ OCTA
       if (publicClient && totalOctaNeeded > 0n) {
         const octaAllowance: bigint = (await publicClient.readContract({
           address: OCTA_TOKEN_ADDRESS as `0x${string}`,
@@ -689,15 +733,15 @@ export default function BreedPage() {
         }
       }
 
-      // ШАГ 3: ОБА АПРУВА ЗАВЕРШЕНЫ - ВЫКЛЮЧАЕМ ИНДИКАТОР АПРУВОВ
+      // РЁРђР“ 3: РћР‘Рђ РђРџР РЈР’Рђ Р—РђР’Р•Р РЁР•РќР« - Р’Р«РљР›Р®Р§РђР•Рњ РРќР”РРљРђРўРћР  РђРџР РЈР’РћР’
       setIsApprovingTokens(false);
       
-      // ШАГ 4: ТЕПЕРЬ ПОКАЗЫВАЕМ АНИМАЦИЮ И НАЧИНАЕМ BREEDING
+      // РЁРђР“ 4: РўР•РџР•Р Р¬ РџРћРљРђР—Р«Р’РђР•Рњ РђРќРРњРђР¦РР® Р РќРђР§РРќРђР•Рњ BREEDING
       setIsBreeding(true);
       setShowBreedingEffect(true);
 
       toast({
-        title: tr('sections.breed.confirmBreeding', '⚡ Starting Breeding'),
+  title: tr('sections.breed.confirmBreeding', '⚗️ Starting Breeding'),
         description: tr(
           'sections.breed.signBreedingTransaction',
           'Sign breeding transaction'
@@ -716,7 +760,7 @@ export default function BreedPage() {
       });
       setIsBreeding(false);
       setShowBreedingEffect(false);
-      setIsApprovingTokens(false); // Выключаем индикатор при ошибке
+      setIsApprovingTokens(false); // Р’С‹РєР»СЋС‡Р°РµРј РёРЅРґРёРєР°С‚РѕСЂ РїСЂРё РѕС€РёР±РєРµ
     }
   };
 
@@ -730,7 +774,7 @@ export default function BreedPage() {
       toast({
         title: tr(
           'sections.breed.breedingSuccessful',
-          'Breeding Successful! 💕'
+          'Breeding Successful! рџ’•'
         ),
         description: tr(
           'sections.breed.txConfirmed',
@@ -755,22 +799,22 @@ export default function BreedPage() {
             if (log.address?.toLowerCase() !== GAME_ADDR.toLowerCase()) continue;
             try {
               const dec = decodeEventLog({ abi: [breedFinalized], eventName: 'BreedFinalized', ...log });
-              const args: any = dec.args;
+              const args = dec.args as { revived: bigint; bonusStars?: number };
               foundToken = Number(args.revived);
-              foundBonus = Number(args.bonusStars || 0);
+              foundBonus = args.bonusStars || 0;
               break;
             } catch {}
             try {
               const dec2 = decodeEventLog({ abi: [nftBred], eventName: 'NFTBred', ...log });
-              const args2: any = dec2.args;
+              const args2 = dec2.args as { revivedId: bigint };
               foundToken = Number(args2.revivedId);
               // bonus not present in this event
             } catch {}
           }
           if (foundToken) {
-            // Сначала обновляем список NFT, чтобы модалка могла найти изображение
+            // РЎРЅР°С‡Р°Р»Р° РѕР±РЅРѕРІР»СЏРµРј СЃРїРёСЃРѕРє NFT, С‡С‚РѕР±С‹ РјРѕРґР°Р»РєР° РјРѕРіР»Р° РЅР°Р№С‚Рё РёР·РѕР±СЂР°Р¶РµРЅРёРµ
             await refetchAllNFTs();
-            // Небольшая задержка для загрузки данных
+            // РќРµР±РѕР»СЊС€Р°СЏ Р·Р°РґРµСЂР¶РєР° РґР»СЏ Р·Р°РіСЂСѓР·РєРё РґР°РЅРЅС‹С…
             setTimeout(() => {
               setResultTokenId(foundToken);
               setResultBonusStars(foundBonus);
@@ -951,17 +995,17 @@ export default function BreedPage() {
                       <p>
                         {tr(
                           'sections.breed.guide.fee',
-                          '💸 Fee: 40% of minimum marketplace price: 10% CRAA burn + 30% OCTAA (10% OCTAA to LP PancakeSwap OCTAA–WMON, 20% OCTAA burn)'
+                          'рџ’ё Fee: 40% of minimum marketplace price: 10% CRAA burn + 30% OCTAA (10% OCTAA to LP PancakeSwap OCTAAвЂ“WMON, 20% OCTAA burn)'
                         )}
                       </p>
                       <p>
                         {tr(
                           'sections.breed.guide.prereq',
-                          '⚡ Prerequisites: Each parent must have at least 1 active star'
+                          '⚗️ Prerequisites: Each parent must have at least 1 active star'
                         )}
                       </p>
                       <p>
-                        <strong>⚥ Gender Requirement:</strong> {tr(
+                        <strong>вљҐ Gender Requirement:</strong> {tr(
                           'sections.breed.genderRequirement',
                           'Parents must be of different genders (male and female)'
                         )}
@@ -975,13 +1019,13 @@ export default function BreedPage() {
                       <p>
                         {tr(
                           'sections.breed.guide.rarityChance',
-                          '🎲 Rare Mutation Chance: Upon birth, the newborn cube may randomly gain a rarity boost of +3 to +5 stars'
+                          'рџЋІ Rare Mutation Chance: Upon birth, the newborn cube may randomly gain a rarity boost of +3 to +5 stars'
                         )}
                       </p>
                       <p>
                         {tr(
                           'sections.breed.guide.cooldown',
-                          '⏱️ Recovery Period: 48-hour cooldown for parent NFTs after breeding'
+                          'вЏ±пёЏ Recovery Period: 48-hour cooldown for parent NFTs after breeding'
                         )}
                       </p>
                       <ol className='list-decimal list-inside pl-4 space-y-0.5'>
@@ -1001,13 +1045,13 @@ export default function BreedPage() {
                       <p className='text-xs text-cyan-300'>
                         {tr(
                           'sections.breed.guide.safety',
-                          '⚠️ Breeding Safety: Only NFTs with active stars can participate'
+                          'вљ пёЏ Breeding Safety: Only NFTs with active stars can participate'
                         )}
                       </p>
                       <p className='text-xs text-cyan-300'>
                         <Trans
                           i18nKey='sections.breed.guide.tokenLinks'
-                          defaultValue='🔗 Quick DeFi links: <octa>Swap OCTAA on PancakeSwap</octa> • <cra>Swap CRAA on PancakeSwap</cra> • <dex>CRA chart on DexScreener</dex>'
+                          defaultValue='📗 Quick DeFi links: <octa>Swap OCTAA on PancakeSwap</octa> • <cra>Swap CRAA on PancakeSwap</cra> • <dex>CRA chart on DexScreener</dex>'
                           components={{
                             octa: (
                               <a
@@ -1037,7 +1081,7 @@ export default function BreedPage() {
                         />
                       </p>
                       <p className='text-xs text-cyan-300 font-mono'>
-                        {tr('sections.breed.guide.contractAddress', '🔗 CRAA Token Contract: 0xB4832932D819361e0d250c338eBf87f0757ed800')}
+                        {tr('sections.breed.guide.contractAddress', 'рџ”— CRAA Token Contract: 0xB4832932D819361e0d250c338eBf87f0757ed800')}
                       </p>
                       <div className='mt-3 grid grid-cols-1 gap-2'>
                         <div className='p-3 bg-slate-900/70 rounded border border-cyan-400/10'>
@@ -1051,7 +1095,7 @@ export default function BreedPage() {
                               rel='noopener noreferrer'
                               className='underline text-cyan-200 hover:text-cyan-100'
                             >
-                              {tr('sections.breed.quickLinks.octaa', 'Open PancakeSwap — Swap OCTAA')}
+                              {tr('sections.breed.quickLinks.octaa', 'Open PancakeSwap вЂ” Swap OCTAA')}
                             </a>
                           </p>
                         </div>
@@ -1066,7 +1110,7 @@ export default function BreedPage() {
                               rel='noopener noreferrer'
                               className='underline text-amber-200 hover:text-amber-100'
                             >
-                              {tr('sections.breed.quickLinks.craa', 'Open PancakeSwap — Swap CRAA')}
+                              {tr('sections.breed.quickLinks.craa', 'Open PancakeSwap вЂ” Swap CRAA')}
                             </a>
                           </p>
                         </div>
@@ -1092,7 +1136,7 @@ export default function BreedPage() {
                 </div>
               </div>
               <h3 className='text-xl font-semibold text-white mb-2'>
-                {tr('sections.breed.connectWallet', '🔌 Connect Neural Interface')}
+                {tr('sections.breed.connectWallet', 'рџ”Њ Connect Neural Interface')}
               </h3>
               <p className='text-gray-300 mb-4'>
                 {tr(
@@ -1129,14 +1173,14 @@ export default function BreedPage() {
                 </div>
               </div>
               <h3 className='text-xl font-semibold text-white mb-2'>
-                {tr('sections.breed.errorLoadingNfts', '⚠️ Database Connection Error')}
+                {tr('sections.breed.errorLoadingNfts', 'вљ пёЏ Database Connection Error')}
               </h3>
               <p className='text-red-300 mb-4'>{error.message}</p>
               <Button
                 onClick={() => window.location.reload()}
                 className='bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 shadow-[0_0_15px_rgba(239,68,68,0.4)]'
               >
-                {tr('common.retry', '🔄 Reconnect Database')}
+                {tr('common.retry', 'рџ”„ Reconnect Database')}
               </Button>
             </div>
           ) : isLoading ? (
@@ -1148,7 +1192,7 @@ export default function BreedPage() {
                 </div>
               </div>
               <h3 className='text-xl font-semibold text-white mb-2'>
-                {tr('sections.breed.loadingNfts', '🔬 Scanning Genetic Database...')}
+                {tr('sections.breed.loadingNfts', 'рџ”¬ Scanning Genetic Database...')}
               </h3>
               <p className='text-cyan-300'>
                 {tr(
@@ -1166,7 +1210,7 @@ export default function BreedPage() {
                 </div>
               </div>
               <h3 className='text-xl font-semibold text-white mb-2'>
-                {tr('sections.breed.noNftsFound', '📭 No Specimens Found')}
+                {tr('sections.breed.noNftsFound', 'рџ“­ No Specimens Found')}
               </h3>
               <p className='text-amber-300'>
                 {tr(
@@ -1176,7 +1220,7 @@ export default function BreedPage() {
               </p>
               <Link href='/' className='mt-4 inline-block'>
                 <Button className='bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 shadow-[0_0_15px_rgba(245,158,11,0.4)]'>
-                  {tr('sections.breed.goToCollection', '🧪 Browse Specimen Collection')}
+                  {tr('sections.breed.goToCollection', 'рџ§Є Browse Specimen Collection')}
                 </Button>
               </Link>
             </div>
@@ -1194,7 +1238,7 @@ export default function BreedPage() {
                   </div>
                   <h3 className='relative z-10 text-base md:text-lg font-semibold text-cyan-100 py-2 px-4'>
                     <span className='bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent font-bold inline-flex items-center gap-2'>
-                      ⚡ GENETIC SYNTHESIS CHAMBER
+                      ⚗️ GENETIC SYNTHESIS CHAMBER
                       <span className='text-sm text-cyan-200 font-normal'>
                         • Specimens: {selectedNFTs.length}/2
                       </span>
@@ -1202,7 +1246,7 @@ export default function BreedPage() {
                   </h3>
                 </div>
 
-                {/* Graveyard Status - БОЛЬШОЕ заметное уведомление */}
+                {/* Graveyard Status - Р‘РћР›Р¬РЁРћР• Р·Р°РјРµС‚РЅРѕРµ СѓРІРµРґРѕРјР»РµРЅРёРµ */}
                 {!isGraveyardContractReady && !graveyardLoading && (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
@@ -1214,11 +1258,11 @@ export default function BreedPage() {
                       <div className='absolute inset-0 bg-gradient-to-r from-red-500/10 via-orange-500/10 to-red-500/10 animate-pulse' />
                       
                       <div className='relative z-10 text-center space-y-3'>
-                        <div className='text-5xl mb-2'>⚰️</div>
+                        <div className='text-5xl mb-2'>вљ°пёЏ</div>
                         <h3 className='text-xl font-bold text-red-200'>
                           {graveyardTokens?.length === 0 
-                            ? '🚫 GRAVEYARD EMPTY' 
-                            : '⏳ REVIVAL COOLDOWN ACTIVE'}
+                            ? 'рџљ« GRAVEYARD EMPTY' 
+                            : 'вЏі REVIVAL COOLDOWN ACTIVE'}
                         </h3>
                         <p className='text-red-300/90 text-sm leading-relaxed'>
                           {graveyardTokens?.length === 0
@@ -1227,7 +1271,7 @@ export default function BreedPage() {
                         </p>
                         <div className='pt-2 border-t border-red-500/30'>
                           <p className='text-red-400/80 text-xs font-mono'>
-                            🔒 Breeding temporarily unavailable
+                            рџ”’ Breeding temporarily unavailable
                           </p>
                         </div>
                       </div>
@@ -1235,11 +1279,11 @@ export default function BreedPage() {
                   </motion.div>
                 )}
 
-                {/* Compact status для успешного состояния */}
+                {/* Compact status РґР»СЏ СѓСЃРїРµС€РЅРѕРіРѕ СЃРѕСЃС‚РѕСЏРЅРёСЏ */}
                 <div className='mb-3'>
                   {graveyardLoading ? (
                     <p className='text-sm text-pink-200'>
-                      ⏳{' '}
+                      вЏі{' '}
                       {tr(
                         'sections.breed.loadingGraveyardStatus',
                         'Loading graveyard status...'
@@ -1322,12 +1366,13 @@ export default function BreedPage() {
                                     {/* Specimen under analysis */}
                                     <div className='relative w-full h-full flex items-center justify-center'>
                                       <div className='relative w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 overflow-hidden rounded-md'>
-                                        <Image
-                                          src={resolveIpfsUrl(nft.image)}
+                                        <IpfsImage
+                                          src="" // РќРµ РёСЃРїРѕР»СЊР·СѓРµРј РІРЅРµС€РЅРёР№ src, С‚РѕР»СЊРєРѕ tokenId
                                           alt={`Specimen ${nft.name}`}
+                                          className='object-contain rounded-md'
+                                          tokenId={String(nft.tokenId)} // РџРµСЂРµРґР°РµРј tokenId РґР»СЏ Р»РѕРєР°Р»СЊРЅРѕРіРѕ РёР·РѕР±СЂР°Р¶РµРЅРёСЏ
                                           fill
                                           sizes='(max-width: 768px) 64px, 80px'
-                                          className='object-contain rounded-md'
                                           priority
                                         />
                                         {/* Analysis overlay */}
@@ -1386,7 +1431,7 @@ export default function BreedPage() {
                               ? 'bg-blue-600/80 border-blue-400 text-blue-200 shadow-[0_0_8px_rgba(59,130,246,0.6)]'
                               : 'bg-purple-600/80 border-purple-400 text-purple-200 shadow-[0_0_8px_rgba(147,51,234,0.6)]'
                           }`}>
-                            {index === 0 ? '⚡ ALPHA' : '🧬 BETA'}
+                            {index === 0 ? '⚗️ ALPHA' : '🧬 BETA'}
                           </div>
                         </div>
                       )}
@@ -1430,14 +1475,14 @@ export default function BreedPage() {
                         <span className='adaptive-text-lg flex items-center justify-center'>
                           <div className='mr-2 h-4 w-4 md:h-5 md:w-5 border-2 border-white border-t-transparent rounded-full animate-spin flex-shrink-0' />
                           <span className='truncate'>
-                            {tr('sections.breed.approvingTokens', '🔐 Approving Tokens...')}
+                            {tr('sections.breed.approvingTokens', 'рџ”ђ Approving Tokens...')}
                           </span>
                         </span>
                       ) : isBreeding ? (
                         <span className='adaptive-text-lg flex items-center justify-center'>
                           <div className='mr-2 h-4 w-4 md:h-5 md:w-5 border-2 border-white border-t-transparent rounded-full animate-spin flex-shrink-0' />
                           <span className='truncate'>
-                            {tr('sections.breed.breeding', '⚡ Synthesizing...')}
+                            {tr('sections.breed.breeding', '⚗️ Synthesizing...')}
                           </span>
                         </span>
                       ) : (
@@ -1460,7 +1505,7 @@ export default function BreedPage() {
                         {!isGraveyardContractReady ? (
                           <div className='text-red-400 text-sm'>
                             <p>
-                              ⚠️{' '}
+                              вљ пёЏ{' '}
                               {tr(
                                 'sections.breed.graveyardCooldown',
                                 'Graveyard cooldown active'
@@ -1479,7 +1524,7 @@ export default function BreedPage() {
                             return !nftData || nftData.currentStars === 0;
                           }) ? (
                           <p className='text-red-400 text-sm'>
-                            ⚠️{' '}
+                            вљ пёЏ{' '}
                             {tr(
                               'sections.breed.selectedNftsNoStars',
                               'Selected NFTs have no stars left! Choose active NFTs with stars.'
@@ -1487,7 +1532,7 @@ export default function BreedPage() {
                           </p>
                         ) : (
                           <p className='text-red-400 text-sm'>
-                            ⚠️{' '}
+                            вљ пёЏ{' '}
                             {tr(
                               'sections.breed.cannotBreedSelectedNfts',
                               'Cannot breed selected NFTs. Check requirements.'
@@ -1544,18 +1589,18 @@ export default function BreedPage() {
           )}
         </main>
       </div>{' '}
-      {/* Breeding Effect - показывается ТОЛЬКО во время breeding, НЕ во время апрувов */}
+      {/* Breeding Effect - РїРѕРєР°Р·С‹РІР°РµС‚СЃСЏ РўРћР›Р¬РљРћ РІРѕ РІСЂРµРјСЏ breeding, РќР• РІРѕ РІСЂРµРјСЏ Р°РїСЂСѓРІРѕРІ */}
       {showBreedingEffect && !isApprovingTokens && (
         <BreedingEffect
           isActive={showBreedingEffect}
           onComplete={() => {
-            // Не закрываем анимацию автоматически - ждем результата
+            // РќРµ Р·Р°РєСЂС‹РІР°РµРј Р°РЅРёРјР°С†РёСЋ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё - Р¶РґРµРј СЂРµР·СѓР»СЊС‚Р°С‚Р°
             // setShowBreedingEffect(false);
           }}
         />
       )}
       
-      {/* Breeding Result Modal - показывается когда есть результат */}
+      {/* Breeding Result Modal - РїРѕРєР°Р·С‹РІР°РµС‚СЃСЏ РєРѕРіРґР° РµСЃС‚СЊ СЂРµР·СѓР»СЊС‚Р°С‚ */}
       {(resultTokenId !== null || liveRevived.length > 0) && (
         <BreedingResultModal
           isVisible={true}
@@ -1565,12 +1610,73 @@ export default function BreedPage() {
             clearBreedBonus();
             setResultTokenId(null);
             setResultBonusStars(0);
-            setShowBreedingEffect(false); // Закрываем анимацию при закрытии модалки
+            setShowBreedingEffect(false); // Р—Р°РєСЂС‹РІР°РµРј Р°РЅРёРјР°С†РёСЋ РїСЂРё Р·Р°РєСЂС‹С‚РёРё РјРѕРґР°Р»РєРё
             setIsRefreshing(false);
             refetch();
           }}
         />
       )}
-    </div>
+ 
+      {/* Модальное окно предупреждения об изменении курса (как на DEX) */}
+      <AlertDialog open={showRateChangedDialog} onOpenChange={setShowRateChangedDialog}>
+        <AlertDialogContent className='bg-gradient-to-br from-yellow-900/95 to-orange-900/95 border-2 border-yellow-500/50'>
+          <AlertDialogHeader>
+            <AlertDialogTitle className='text-2xl font-bold text-yellow-200 flex items-center gap-2'>
+              ⚠️ Курс изменился!
+            </AlertDialogTitle>
+            <AlertDialogDescription className='text-yellow-100 space-y-3'>
+              <div className='text-lg'>
+                Курс breeding изменился пока вы выбирали NFT.
+              </div>
+              <div className='bg-black/30 p-4 rounded-lg space-y-2'>
+                <div className='flex justify-between items-center'>
+                  <span className='text-gray-300'>Старый курс:</span>
+                  <span className='text-white font-bold text-xl'>{initialBreedCost} CRAA</span>
+                </div>
+                <div className='flex justify-between items-center'>
+                  <span className='text-gray-300'>Новый курс:</span>
+                  <span className='text-yellow-300 font-bold text-xl'>{newBreedCost} CRAA</span>
+                </div>
+                {initialBreedCost && newBreedCost && (
+                  <div className='flex justify-between items-center pt-2 border-t border-yellow-500/30'>
+                    <span className='text-gray-300'>Изменение:</span>
+                    <span className={`font-bold text-lg ${Number(newBreedCost) > Number(initialBreedCost) ? 'text-red-400' : 'text-green-400'}`}>
+                      {Number(newBreedCost) > Number(initialBreedCost) ? '+' : ''}
+                      {(((Number(newBreedCost) - Number(initialBreedCost)) / Number(initialBreedCost)) * 100).toFixed(2)}%
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div className='text-sm text-yellow-200/80 mt-3'>
+                Вы согласны продолжить с новым курсом?
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              className='bg-gray-700 hover:bg-gray-600 text-white border-gray-500'
+              onClick={() => {
+                setShowRateChangedDialog(false);
+                setNewBreedCost(null);
+              }}
+            >
+              Отменить
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className='bg-yellow-500 hover:bg-yellow-400 text-black font-bold'
+              onClick={() => {
+                setInitialBreedCost(newBreedCost);
+                setShowRateChangedDialog(false);
+                setNewBreedCost(null);
+                setTimeout(() => handleBreeding(), 100);
+              }}
+            >
+              Продолжить с новым курсом
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>   </div>
   );
 }
+
+

@@ -1,7 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { monadChain } from '@/config/chains';
 import { alchemyFetch } from '@/lib/alchemyFetch';
 import { z } from 'zod';
+const withCdnCache = (response: NextResponse) => {
+  response.headers.set('Cache-Control', 's-maxage=300, stale-while-revalidate=60');
+  response.headers.set('CDN-Cache-Control', 'max-age=300, stale-while-revalidate=60');
+  return response;
+};
+
 
 export const dynamic = 'force-dynamic';
 
@@ -72,11 +78,13 @@ export async function GET(request: NextRequest) {
     const balance = parseInt(balanceResult.result, 16);
 
     if (balance === 0) {
-      return NextResponse.json({
-        ownedNfts: [],
-        totalCount: 0,
-        pageKey: null,
-      });
+      return withCdnCache(
+        NextResponse.json({
+          ownedNfts: [],
+          totalCount: 0,
+          pageKey: null,
+        })
+      );
     }
 
     // Get all token IDs owned by this address
@@ -146,11 +154,13 @@ export async function GET(request: NextRequest) {
       timeLastUpdated: new Date().toISOString(),
     }));
 
-    return NextResponse.json({
-      ownedNfts: nfts,
-      totalCount: nfts.length,
-      pageKey: null,
-    });
+    return withCdnCache(
+      NextResponse.json({
+        ownedNfts: nfts,
+        totalCount: nfts.length,
+        pageKey: null,
+      })
+    );
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error fetching NFTs:', errorMessage);

@@ -2,7 +2,7 @@ import { useNFTContractInfo } from '@/hooks/useNFTContractInfo';
 import { useNFTGameInfo } from '@/hooks/useNFTGameData';
 import {
   AlchemyNFT,
-  getNFTImageRaw,
+  getNFTImage,
   getTokenIdAsDecimal,
 } from '@/hooks/useUserNFTs';
 import { UnifiedNftCard } from '@/components/UnifiedNftCard';
@@ -308,11 +308,7 @@ export const BreedCard = React.memo(function BreedCard({
             }}
           />
           <UnifiedNftCard
-            imageSrc={
-              'image' in nft && nft.image
-                ? nft.image
-                : getNFTImageRaw(nft as AlchemyNFT)
-            }
+            imageSrc={getNFTImage(nft as AlchemyNFT)}
             tokenId={tokenIdDisplay}
             title={
               'name' in nft && nft.name

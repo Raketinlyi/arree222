@@ -961,7 +961,6 @@ export function CubeAnimation({ desktopScale = 1 }: CubeAnimationProps) {
                   width={isMobile ? 80 : 120}
                   height={isMobile ? 60 : 90}
                   className='object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.9)]'
-                  priority={true}
                 />
                 {/* Pulsing light effects from boombox */}
                 <motion.div
@@ -1095,6 +1094,7 @@ export function CubeAnimation({ desktopScale = 1 }: CubeAnimationProps) {
                 width={cubeSize}
                 height={cubeSize}
                 className='object-contain drop-shadow-[0_0_15px_rgba(59,130,246,0.5)] transform transition-transform group-hover:scale-110'
+                sizes={isMobile ? '70vw' : '320px'}
                 priority={true}
               />
 
@@ -1214,7 +1214,6 @@ export function CubeAnimation({ desktopScale = 1 }: CubeAnimationProps) {
                     width={cubeSize}
                     height={cubeSize}
                     className='object-contain drop-shadow-[0_0_15px_rgba(59,130,246,0.5)] transform transition-transform group-hover:scale-110'
-                    priority={true}
                   />
                 </div>
               </motion.div>
@@ -1273,7 +1272,6 @@ export function CubeAnimation({ desktopScale = 1 }: CubeAnimationProps) {
                   width={isMobile ? 80 : 120}
                   height={isMobile ? 60 : 90}
                   className='object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.9)]'
-                  priority={true}
                 />
                 {/* Pulsing light effects from boombox */}
                 <motion.div

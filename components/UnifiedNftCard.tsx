@@ -60,6 +60,7 @@ export const UnifiedNftCard = React.memo(function UnifiedNftCard({
                   width={240}
                   height={240}
                   className='w-full h-full object-cover'
+                  tokenId={tokenId}
                 />
               ) : (
                 <span className='text-xl font-bold text-white'>#{tokenId}</span>

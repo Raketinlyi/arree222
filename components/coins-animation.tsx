@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import Image from 'next/image';
 
 interface CoinsAnimationProps {
@@ -15,8 +15,24 @@ interface CoinsAnimationProps {
 }
 
 /**
+ * Detect weak device based on hardware capabilities
+ */
+function detectWeakDevice(): boolean {
+  if (typeof window === 'undefined') return false;
+  
+  const nav = navigator as any;
+  // Check hardware concurrency (CPU cores) and device memory
+  const cores = nav.hardwareConcurrency || 4;
+  const memory = nav.deviceMemory || 4; // GB
+  
+  // Weak device: <= 2 cores OR <= 2GB RAM
+  return cores <= 2 || memory <= 2;
+}
+
+/**
  * Fixed layer that drops coin-blue.png from top of screen.
  * Pure CSS/JS — each coin is a <span> with random left, delay, duration, opacity, size.
+ * Optimized for weak devices (reduces coin count and uses GPU acceleration).
  */
 export function CoinsAnimation({
   density = 12,
@@ -24,17 +40,34 @@ export function CoinsAnimation({
   intensity,
   theme = 'gold',
 }: CoinsAnimationProps) {
-      // If intensity is passed, use it for density (for backward compatibility)
+  const [isWeakDevice, setIsWeakDevice] = useState(false);
+
+  useEffect(() => {
+    // Detect weak device on mount
+    setIsWeakDevice(detectWeakDevice());
+  }, []);
+
+  // If intensity is passed, use it for density (for backward compatibility)
   const effectiveDensity =
     intensity !== undefined ? density * intensity : density;
 
-      // Pre-generate list of coins with random parameters (useMemo)
+  // Pre-generate list of coins with random parameters (useMemo)
   const coins = useMemo(() => {
     const vw = typeof window !== 'undefined' ? window.innerWidth : 1440;
     const isMobile = vw < 768;
-    const mobileDensity = Math.max(4, effectiveDensity * 0.5);
-    const actualDensity = isMobile ? mobileDensity : effectiveDensity;
-    const count = Math.max(8, Math.round((vw / 1440) * actualDensity));
+    
+    // Reduce density on weak devices
+    const weakDeviceMultiplier = isWeakDevice ? 0.3 : 1;
+    const mobileDensity = Math.max(4, effectiveDensity * 0.5 * weakDeviceMultiplier);
+    const actualDensity = isMobile 
+      ? mobileDensity 
+      : effectiveDensity * weakDeviceMultiplier;
+    
+    const count = Math.max(
+      isWeakDevice ? 4 : 8, 
+      Math.round((vw / 1440) * actualDensity)
+    );
+    
     return Array.from({ length: count }, () => ({
       left: Math.random() * 100, // vw %
       size: isMobile ? 18 + Math.random() * 18 : 24 + Math.random() * 28,
@@ -42,7 +75,7 @@ export function CoinsAnimation({
       duration: (isMobile ? 7 : 5) + Math.random() * (isMobile ? 5 : 3),
       opacity: isMobile ? 0.3 + Math.random() * 0.3 : 0.4 + Math.random() * 0.4,
     }));
-  }, [effectiveDensity]);
+  }, [effectiveDensity, isWeakDevice]);
 
   return (
     <div
@@ -94,6 +127,10 @@ export function CoinsAnimation({
           animation-name: coin-fall;
           animation-timing-function: linear;
           animation-iteration-count: infinite;
+          /* GPU acceleration for smooth animations on weak devices */
+          will-change: transform;
+          transform: translateZ(0);
+          backface-visibility: hidden;
         }
       `}</style>
     </div>

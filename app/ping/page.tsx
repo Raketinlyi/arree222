@@ -51,7 +51,11 @@ export default function PingPage() {
 
   // Add magical animations CSS
   useEffect(() => {
+    // Проверяем существование перед добавлением чтобы избежать дублирования
+    if (document.querySelector('#ping-animations')) return;
+    
     const style = document.createElement('style');
+    style.id = 'ping-animations';
     style.textContent = `
       @keyframes float-0 {
         0%, 100% { transform: translateY(0px) translateX(0px); }
@@ -73,19 +77,22 @@ export default function PingPage() {
       }
       @keyframes shimmer {
         0% { transform: translateX(-100%); }
-        50% { transform: translateX(100vw); }
-        100% { transform: translateX(100vw); }
+        50% { transform: translateX(100%); }
+        100% { transform: translateX(100%); }
       }
       @keyframes shimmer-vertical {
         0% { transform: translateY(100%); }
-        50% { transform: translateY(-100vh); }
-        100% { transform: translateY(-100vh); }
+        50% { transform: translateY(-100%); }
+        100% { transform: translateY(-100%); }
       }
     `;
     document.head.appendChild(style);
     
     return () => {
-      document.head.removeChild(style);
+      const existingStyle = document.querySelector('#ping-animations');
+      if (existingStyle) {
+        document.head.removeChild(existingStyle);
+      }
     };
   }, []);
 

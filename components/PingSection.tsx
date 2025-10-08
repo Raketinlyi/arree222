@@ -3,8 +3,10 @@
 import React from 'react';
 import {
   useUserNFTs,
-  getNFTImageRaw,
+  getNFTImage,
   getNFTName,
+  getTokenIdAsDecimal,
+  getNFTImageRaw,
   type AlchemyNFT,
 } from '@/hooks/useUserNFTs';
 import {
@@ -23,6 +25,7 @@ import { useTranslation } from 'react-i18next';
 import { useNetwork } from '@/hooks/use-network';
 import DOMPurify from 'isomorphic-dompurify';
 import { IpfsImage } from '@/components/IpfsImage';
+import { resolveIpfsUrl } from '@/lib/ipfs';
 
 interface PingableNFTProps {
   nft: AlchemyNFT;
@@ -56,10 +59,10 @@ const PingableNFT = ({
   };
 
   const canPing = gameInfo?.canPing && !isLoading;
-  const rawImageSrc = getNFTImageRaw(nft);
-  const imageSrc =
-    rawImageSrc ||
-    'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACwAAAAAAQABAAACAkQBADs=';
+  // Prefer local image path (getNFTImage returns `/nft/{tokenId}.webp` when tokenId exists)
+  const imageSrc = getNFTImage(nft) || 'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACwAAAAAAQABAAACAkQBADs=';
+  const tokenIdDecimal = getTokenIdAsDecimal(nft);
+  const fallbackImageSrc = resolveIpfsUrl(getNFTImageRaw(nft));
 
   return (
     <motion.div
@@ -84,6 +87,8 @@ const PingableNFT = ({
               className='object-cover rounded-lg'
               fill
               sizes='(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw'
+              tokenId={tokenIdDecimal || undefined}
+              fallbackSrc={fallbackImageSrc}
             />
 
             {/* Status badges */}

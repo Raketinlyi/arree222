@@ -85,7 +85,6 @@ export const GraveyardCubeCard = memo(function GraveyardCubeCard({
               explodeDuration={4.6}
               maxPieces={6}
               stillDelay={1}
-              priority={index < 4}
             />
             <div className='absolute inset-0 bg-black/30 pointer-events-none' />
             {isReadyForBreed && (

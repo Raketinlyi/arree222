@@ -109,7 +109,7 @@ if (typeof window !== 'undefined') {
         },
         showQrModal: true,
       }),
-      // Enable injected connectors only on safe browsers
+      // Enable only MetaMask (Phantom removed - has transaction freezing issues)
       ...(enableInjected
         ? [
             metaMask({
@@ -119,7 +119,7 @@ if (typeof window !== 'undefined') {
                 iconUrl: '/icons/favicon-180x180.png',
               },
             }),
-            injected({ shimDisconnect: true }),
+            // injected connector disabled - causes issues with Phantom wallet
           ]
         : []),
     ],

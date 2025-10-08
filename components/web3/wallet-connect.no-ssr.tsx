@@ -128,8 +128,8 @@ const pathname = usePathname();
 
   const renderGameGuideContent = () => {
     const quickLinks = (
-      <div className="mt-4 space-y-2 text-sm text-slate-200">
-        <div className="font-semibold text-indigo-300">
+      <div className="mt-4 space-y-2 text-sm text-white">
+        <div className="font-semibold text-white">
           {t('wallet.pancakeLinks.title', 'Quick DeFi links')}
         </div>
         <ul className="space-y-1">
@@ -138,7 +138,7 @@ const pathname = usePathname();
               href={PANCAKESWAP_OCTAA_SWAP_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-cyan-300 hover:text-cyan-200 underline"
+              className="text-white hover:text-white/80 underline"
             >
               🟡 {t('wallet.pancakeLinks.octaa', 'Swap OCTAA on PancakeSwap')}
             </a>
@@ -148,7 +148,7 @@ const pathname = usePathname();
               href={PANCAKESWAP_CRAA_LP_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-amber-300 hover:text-amber-200 underline"
+              className="text-white hover:text-white/80 underline"
             >
               🟠 {t('wallet.pancakeLinks.craa', 'Swap CRAA on PancakeSwap')}
             </a>
@@ -158,7 +158,7 @@ const pathname = usePathname();
               href={DEXSCREENER_CRAA_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-purple-300 hover:text-purple-200 underline"
+              className="text-white hover:text-white/80 underline"
             >
               📊 {t('wallet.pancakeLinks.dex', 'View CRAA chart (DexScreener)')}
             </a>
@@ -171,7 +171,7 @@ const pathname = usePathname();
       const content = t("wallet.gameGuideContent");
       if (typeof content === "string") {
         return (
-          <div className="text-slate-300 whitespace-pre-line text-sm leading-relaxed space-y-4">
+          <div className="text-white whitespace-pre-line text-sm leading-relaxed space-y-4">
             <div>{content}</div>
             {quickLinks}
           </div>
@@ -180,13 +180,13 @@ const pathname = usePathname();
       if (typeof content === "object" && content !== null) {
         const guideContent = content as any;
         return (
-          <div className="text-slate-300 text-sm leading-relaxed space-y-4">
-            <div className="text-lg font-bold text-purple-400 mb-2">
+          <div className="text-white text-sm leading-relaxed space-y-4">
+            <div className="text-lg font-bold text-white mb-2">
               {guideContent.title || "🎮 CrazyCube Game Guide"}
             </div>
             {guideContent.gettingStarted && (
               <div>
-                <div className="font-semibold text-purple-300">
+                <div className="font-semibold text-white">
                   {guideContent.gettingStarted.title}
                 </div>
                 <div className="space-y-1 ml-4">
@@ -200,7 +200,7 @@ const pathname = usePathname();
         );
       }
       return (
-        <div className="text-slate-300 text-sm">Game guide content not available</div>
+        <div className="text-white text-sm">Game guide content not available</div>
       );
     } catch {
       return null;
@@ -255,9 +255,9 @@ const pathname = usePathname();
             <div className="flex flex-col items-end gap-1 -mt-1">
               {/* Explicit CRAA balance line like satt11-main */}
               {craBal && (
-                <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-slate-800/60 border border-slate-600 text-slate-100">
-                  <span className="text-[10px] opacity-80">{t('ping.balance', 'Balance:')}</span>
-                  <span className="text-sm font-bold font-mono">
+                <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-slate-800/60 border border-slate-600 text-white">
+                  <span className="text-[10px] text-white/90">{t('ping.balance', 'Balance:')}</span>
+                  <span className="text-sm font-bold font-mono text-white">
                     <NumberWithTooltip
                       value={parseFloat(((craBal?.formatted as string) ?? altCraa) || '0')}
                       type="cr"
@@ -271,9 +271,9 @@ const pathname = usePathname();
 
               {/* Explicit OCTA balance line (separate) */}
               {octaBal && (
-                <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-slate-800/60 border border-slate-600 text-slate-100">
-                  <span className="text-[10px] opacity-80">{t('ping.balance', 'Balance:')}</span>
-                  <span className="text-sm font-bold font-mono">
+                <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-slate-800/60 border border-slate-600 text-white">
+                  <span className="text-[10px] text-white/90">{t('ping.balance', 'Balance:')}</span>
+                  <span className="text-sm font-bold font-mono text-white">
                     <NumberWithTooltip
                       value={parseFloat(((octaBal?.formatted as string) ?? altOcta) || '0')}
                       type="cr"
@@ -293,7 +293,7 @@ const pathname = usePathname();
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-8 px-3 bg-slate-800/50 border-slate-600 text-slate-300 hover:bg-slate-700/50 hover:text-white"
+                      className="h-8 px-3 bg-slate-800/50 border-slate-600 text-white hover:bg-slate-700/50 hover:text-white"
                     >
                       {t("wallet.instruction", "Instruction")}
                     </Button>
@@ -301,7 +301,7 @@ const pathname = usePathname();
                   <DialogContent className="max-w-2xl max-h-[80vh] bg-slate-900 border-slate-700">
                     <DialogHeader>
                       <DialogTitle className="text-xl font-bold text-white flex items-center">
-                        <BookOpen className="w-5 h-5 mr-2 text-purple-400" />
+                        <BookOpen className="w-5 h-5 mr-2 text-white" />
                         {t("wallet.gameGuide", "CrazyCube Game Guide")}
                       </DialogTitle>
                     </DialogHeader>
@@ -341,7 +341,7 @@ const pathname = usePathname();
                 </DropdownMenu>
               </div>
 
-              {pathname !== "/" && <CompactMusicPlayer />}
+              <CompactMusicPlayer />
             </div>
           )}
         </div>

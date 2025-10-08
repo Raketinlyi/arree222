@@ -8,7 +8,7 @@ import { SocialSidebar } from '@/components/social-sidebar';
 import { setupGlobalErrorHandling } from '@/utils/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion'; // Added motion import
+import dynamic from 'next/dynamic';
 // Import i18n
 import '@/lib/i18n';
 // Import Web3 provider
@@ -23,11 +23,32 @@ import { EthereumProviderSafe } from '@/components/ethereum-provider-safe';
 import { GlobalLanguageSwitcher } from '@/components/global-language-switcher';
 import EthereumGuard from '@/components/EthereumGuard';
 import { getGlobalAudioElement } from '@/lib/globalAudio';
-import { SparkProjectiles } from '@/components/SparkProjectiles';
 import { usePathname } from 'next/navigation';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { BurnStateProvider } from '@/hooks/use-burn-state';
 import { useNetwork } from '@/hooks/use-network';
+import type { AnimatedLayoutShellProps } from '@/components/layout/AnimatedLayoutShell';
+
+const AnimatedLayoutShell = dynamic<AnimatedLayoutShellProps>(
+  () =>
+    import('@/components/layout/AnimatedLayoutShell').then(
+      mod => mod.AnimatedLayoutShell
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className='relative flex min-h-screen flex-col bg-slate-950/40' />
+    ),
+  }
+);
+
+const SparkProjectiles = dynamic(
+  () =>
+    import('@/components/SparkProjectiles').then(
+      mod => mod.SparkProjectiles
+    ),
+  { ssr: false, loading: () => null }
+);
 
 function DefaultNetworkEnforcer({ currentPath }: { currentPath: string }) {
   const { isConnected } = useAccount();
@@ -93,8 +114,11 @@ if (typeof window !== 'undefined' && !(window as unknown as { web3modal_initiali
           '--w3m-border-radius-master': '8px',
         },
         featuredWalletIds: [
-          'c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96',
-          '4622a2b2d6af1c9844944291e5e7351a6aa24cd7b23099efac1b2fd875da31a0',
+          'c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96', // MetaMask
+          '4622a2b2d6af1c9844944291e5e7351a6aa24cd7b23099efac1b2fd875da31a0', // Trust Wallet
+        ],
+        excludeWalletIds: [
+          'a797aa35c0fadbfc1a53e7f675162ed5226968b44a19ee3d24385c64d1d3c393', // Phantom - убрано из-за проблем с зависанием
         ],
       });
       (window as unknown as { web3modal_initialized?: boolean }).web3modal_initialized = true;
@@ -148,7 +172,6 @@ export default function ClientLayout({
   children: React.ReactNode;
 }>) {
   const [mounted, setMounted] = useState(false);
-  const [chaosMode, setChaosMode] = useState(false); // New state for site-wide chaos
   const pathname = usePathname();
 
   // Initialize on client side
@@ -216,15 +239,6 @@ export default function ClientLayout({
     };
   }, []);
 
-  // Trigger site-wide chaos after a delay
-  useEffect(() => {
-    const chaosTimer = setTimeout(() => {
-      setChaosMode(true);
-    }, 19000); // start chaos tilt after 19s (was 9s)
-
-    return () => clearTimeout(chaosTimer);
-  }, []);
-
   return (
     <>
       {!mounted ? null : (
@@ -240,32 +254,15 @@ export default function ClientLayout({
                         <EthereumGuard />
                         <DefaultNetworkEnforcer currentPath={pathname} />
                         <TooltipProvider delayDuration={120}>
-                          <motion.div
-                            className='relative flex min-h-screen flex-col'
-                            animate={chaosMode && pathname === '/' ? {
-                            // Ещё сильнее (~+30% к предыдущему)
-                            rotate: [0, -1.7, -1.7, 1.7, 1.7],
-                          } : {
-                            rotate: 0,
-                          }}
-                            transition={chaosMode && pathname === '/' ? {
-                            // Цикл 50 секунд и повтор снова
-                            duration: 50,
-                            repeat: Infinity,
-                            ease: "linear",
-                            times: [0, 0.038, 0.5, 0.538, 1]
-                          } : {
-                            duration: 1.5, ease: 'easeInOut'
-                          }}
-                          >
+                          <AnimatedLayoutShell pathname={pathname}>
                             <GlobalLanguageSwitcher />
                             <SocialSidebar />
-                             <SparkProjectiles />
-                             {/* Audio mount node */}
-                             <div id='__global_audio_mount' className='hidden' />
+                            <SparkProjectiles />
+                            {/* Audio mount node */}
+                            <div id='__global_audio_mount' className='hidden' />
                             {children}
                             <BuildErrorDisplay />
-                          </motion.div>
+                          </AnimatedLayoutShell>
                         </TooltipProvider>
                         </SimpleToastProvider>
                       </WalletEventHandler>
@@ -280,3 +277,5 @@ export default function ClientLayout({
     </>
   );
 }
+
+

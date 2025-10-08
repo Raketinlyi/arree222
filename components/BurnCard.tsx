@@ -343,8 +343,8 @@ export const BurnCard = React.memo(function BurnCard({
         variant='secondary'
         className='text-red-400/80 text-xs min-w-[120px] text-center'
       >
-        <Flame className='w-2 h-2 mr-0.5 inline' /> <span className='text-black font-bold'>Fee</span>{' '}
-        <span className='font-black text-black'>
+        <Flame className='w-2 h-2 mr-0.5 inline' /> <span className='text-white font-bold'>Fee</span>{' '}
+        <span className='font-black text-white'>
           {data && Number(data.lockedOcta) > 0 ? calcFeeDisplay() : '0'} OCTAA
         </span>
       </Badge>
@@ -779,7 +779,7 @@ export const BurnCard = React.memo(function BurnCard({
       {/* Confirmation dialog */}
       {data && (
         <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <AlertDialogContent className='bg-[#2f2b2b]/95 border border-red-500/30 text-gray-100 max-w-md text-[15px]'>
+    <AlertDialogContent className='bg-[#2f2b2b]/95 border border-red-500/30 text-gray-100 max-w-md text-[15px]'>
             <AlertDialogHeader>
               <AlertDialogTitle className='flex items-center text-red-300 text-lg'>
                 <Flame className='w-5 h-5 mr-2' /> {t('sections.burn.feeBox.confirmDialog.title', `Burn NFT #${tokenId}`).replace('{tokenId}', tokenId)}
@@ -824,9 +824,9 @@ export const BurnCard = React.memo(function BurnCard({
                     OCTAA
                   </span>
                 </div>
-                <div>
+                <div className='text-white'>
                   {t('sections.burn.feeBox.confirmDialog.fee', 'Fee:')}{' '}
-                  <span className='font-mono text-red-300'>
+                  <span className='font-mono font-bold text-white'>
                     {calcFee()} OCTAA
                   </span>
                 </div>

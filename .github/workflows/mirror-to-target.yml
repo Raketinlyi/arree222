@@ -1,0 +1,87 @@
+name: Build and mirror (export) to target repo
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-mirror:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      # Set TARGET_REPO in repository Secrets or leave to default 'Raketinlyi/12'
+      TARGET_REPO: ${{ secrets.TARGET_REPO || 'Raketinlyi/12' }}
+      TARGET_BRANCH: ${{ secrets.TARGET_BRANCH || 'main' }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (and try export)
+        run: |
+          npm run build --if-present
+          # Try static export; many app-router projects may not export — don't fail the job here
+          npm run export --if-present || true
+
+      - name: Prepare and push to target repo
+        env:
+          TARGET_REPO_PAT: ${{ secrets.TARGET_REPO_PAT }}
+          GITHUB_ACTOR: github-actions[bot]
+        run: |
+          set -eux
+          if [ -z "${TARGET_REPO_PAT}" ]; then
+            echo "ERROR: TARGET_REPO_PAT secret is not set. Create a Personal Access Token (repo scope) and add it as TARGET_REPO_PAT." >&2
+            exit 1
+          fi
+
+          TARGET_REPO_FULL="${TARGET_REPO}"
+          TARGET_URL="https://${TARGET_REPO_PAT}@github.com/${TARGET_REPO_FULL}.git"
+          TARGET_DIR=$(mktemp -d)
+
+          git clone --depth 1 "${TARGET_URL}" "${TARGET_DIR}"
+
+          # Remove everything except .git to replace with new content
+          cd "${TARGET_DIR}"
+          git rm -rf . || true
+
+          # If export output exists, prefer pushing static export (out/)
+          if [ -d "${GITHUB_WORKSPACE}/out" ]; then
+            echo "Using static export in out/ to update ${TARGET_REPO_FULL}"
+            cp -a "${GITHUB_WORKSPACE}/out/." "${TARGET_DIR}/"
+          else
+            echo "No static export found — pushing minimal source files"
+            # Copy minimal set needed to build/deploy on Vercel (app/, public/, next.config.mjs, package.json)
+            mkdir -p "${TARGET_DIR}"
+            cp -a "${GITHUB_WORKSPACE}/app" "${TARGET_DIR}/" || true
+            cp -a "${GITHUB_WORKSPACE}/public" "${TARGET_DIR}/" || true
+            cp -a "${GITHUB_WORKSPACE}/next.config.mjs" "${TARGET_DIR}/" || true
+            cp -a "${GITHUB_WORKSPACE}/package.json" "${TARGET_DIR}/" || true
+            cp -a "${GITHUB_WORKSPACE}/package-lock.json" "${TARGET_DIR}/" || true
+            # Include .vercel or vercel.json if present
+            cp -a "${GITHUB_WORKSPACE}/.vercel" "${TARGET_DIR}/" || true
+            cp -a "${GITHUB_WORKSPACE}/vercel.json" "${TARGET_DIR}/" || true
+          fi
+
+          cd "${TARGET_DIR}"
+          git add --all
+          git commit -m "CI: mirror from ${GITHUB_REPOSITORY}@${GITHUB_SHA}" || echo "No changes to commit"
+          git push "${TARGET_URL}" HEAD:${TARGET_BRANCH} --force
+
+      - name: Done
+        run: echo "Mirror complete"
+
+# Notes:
+# - You must add a repository secret TARGET_REPO_PAT (Personal Access Token with repo scope)
+#   in the source repo (this repo) so the Action can push to the target repo.
+# - Optionally set TARGET_REPO secret to a different owner/repo (default Raketinlyi/12).
+# - This Action tries to push static export (out/) first. If export isn't available it will push a minimal source set.

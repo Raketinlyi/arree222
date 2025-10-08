@@ -220,20 +220,34 @@ export default function GraveyardPage() {
               transition={{ duration: 0.4, delay: 0.5 }} // Shorter delay to start showing cards sooner
             >
               <div className='nft-card-grid gap-4'>
-                {tokenIds.slice(0, 20).map((id, idx) => (
-                  <motion.div
-                    key={id}
-                    initial={{ opacity: 0, scale: 0.8, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    transition={{
-                      duration: 0.3, // Quick card appearance
-                      delay: idx * 0.03, // Faster stagger between cards
-                      ease: 'easeOut',
-                    }}
-                  >
-                    <BurningGraveyardCard tokenId={id} index={idx} />
-                  </motion.div>
-                ))}
+                {tokenIds.slice(0, 20).map((id, idx) => {
+                  // Группами по 5: первые 5 быстро, пауза, следующие 5, пауза и т.д.
+                  const BATCH_SIZE = 5;
+                  const DELAY_WITHIN_BATCH = 0.15; // Задержка между карточками в группе
+                  const DELAY_BETWEEN_BATCHES = 0.8; // Пауза между группами
+                  
+                  const batchIndex = Math.floor(idx / BATCH_SIZE);
+                  const indexInBatch = idx % BATCH_SIZE;
+                  
+                  const calculatedDelay = 
+                    batchIndex * DELAY_BETWEEN_BATCHES + 
+                    indexInBatch * DELAY_WITHIN_BATCH;
+                  
+                  return (
+                    <motion.div
+                      key={id}
+                      initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      transition={{
+                        duration: 0.4,
+                        delay: calculatedDelay,
+                        ease: 'easeOut',
+                      }}
+                    >
+                      <BurningGraveyardCard tokenId={id} index={idx} />
+                    </motion.div>
+                  );
+                })}
               </div>
               {tokenIds.length > 20 && (
                 <div className='mt-8 text-center text-gray-600'>

@@ -1,4 +1,4 @@
-// Lightweight stub for client-side Wagmi initialization
+﻿// Lightweight stub for client-side Wagmi initialization
 // In this project we don't need Alchemy key management on the client.
 // Keep an exported function to satisfy dynamic require('@@/lib/alchemyKey') in wagmi.ts
 
@@ -11,8 +11,8 @@ const failedKeys = new Set<string>();
 let lastResetTime = Date.now();
 let currentTier = 0; // 0 = Alchemy, 1 = Public RPC, 2 = Wagmi
 
-// Reset failed keys every 3 minutes (more aggressive to recover faster)
-const RESET_INTERVAL = 3 * 60 * 1000;
+// Reset failed keys every 30 seconds (more aggressive for Monad's slower network)
+const RESET_INTERVAL = 30 * 1000;
 
 // Track usage / failure stats per key for debugging and smarter rotation
 const keyStats = new Map<
@@ -20,9 +20,42 @@ const keyStats = new Map<
   { uses: number; fails: number; lastUsed: number }
 >();
 
+// Increase concurrent requests limit
+const MAX_CONCURRENT_RPC_REQUESTS = 3; // Reduced from 8 to 3 for Monad's slower network
+const rpcRequestQueue: Array<() => void> = [];
+let activeRpcRequests = 0;
+
+const runWithThrottle = async <T>(task: () => Promise<T>): Promise<T> => {
+  if (activeRpcRequests >= MAX_CONCURRENT_RPC_REQUESTS) {
+    await new Promise<void>(resolve => {
+      rpcRequestQueue.push(resolve);
+    });
+  }
+
+  activeRpcRequests++;
+  try {
+    return await task();
+  } finally {
+    activeRpcRequests = Math.max(0, activeRpcRequests - 1);
+    const next = rpcRequestQueue.shift();
+    if (next) next();
+  }
+};
+
+const extractAlchemyKeyFromUrl = (url: string): string | null => {
+  const match = /\/v2\/([^/?]+)/.exec(url);
+  return match && typeof match[1] === 'string' ? match[1] : null;
+};
+
 // Tier 1: Premium Alchemy endpoints (fastest, rate limited)
 // Use ONLY environment variables (rotation across up to 5 keys). No hardcoded fallbacks.
+const ALCHEMY_KEYS_FROM_ENV = (process.env.ALCHEMY_KEYS ?? '')
+  .split(',')
+  .map(key => key.trim())
+  .filter(key => key.length > 0);
+
 const ALCHEMY_KEYS = [
+  ...ALCHEMY_KEYS_FROM_ENV,
   process.env.NEXT_PUBLIC_ALCHEMY_API_KEY_1,
   process.env.NEXT_PUBLIC_ALCHEMY_API_KEY_2,
   process.env.NEXT_PUBLIC_ALCHEMY_API_KEY_3,
@@ -30,12 +63,6 @@ const ALCHEMY_KEYS = [
   process.env.NEXT_PUBLIC_ALCHEMY_API_KEY_5,
   process.env.NEXT_PUBLIC_ALCHEMY_API_KEY_BREED,
   process.env.NEXT_PUBLIC_ALCHEMY_API_KEY, // optional single-key name
-  // Accept optional typo prefix just in case the env was added that way in the dashboard
-  // Optional typo-prefixed envs (defensively access via index signature)
-  (process.env as Record<string, string | undefined>).XT_PUBLIC_ALCHEMY_API_KEY_1,
-  (process.env as Record<string, string | undefined>).XT_PUBLIC_ALCHEMY_API_KEY_2,
-  (process.env as Record<string, string | undefined>).XT_PUBLIC_ALCHEMY_API_KEY_3,
-  
 ]
   .filter((key): key is string => typeof key === 'string' && key.length > 0)
   // Ensure uniqueness / stable order
@@ -49,6 +76,7 @@ const PUBLIC_RPC_ENDPOINTS = [
   process.env.MONAD_RPC_3,
   process.env.MONAD_RPC_4,
   process.env.MONAD_RPC_5,
+  process.env.MONAD_PUBLIC_RPC,
   process.env.RPC_URL,
   'https://testnet-rpc.monad.xyz',
 ]
@@ -64,7 +92,7 @@ type MinimalWagmiClient = {
 let wagmiPublicClient: MinimalWagmiClient | null = null;
 
 export const getAlchemyKey = (): string => {
-  // Reset failed keys periodically
+  // Reset failed keys more frequently
   const now = Date.now();
   if (now - lastResetTime > RESET_INTERVAL) {
     failedKeys.clear();
@@ -86,11 +114,7 @@ export const getAlchemyKey = (): string => {
     return PUBLIC_RPC_ENDPOINTS[0] || 'https://testnet-rpc.monad.xyz';
   }
 
-  // Round-robin through available keys
-  if (availableKeys.length === 0) {
-    throw new Error('No available Alchemy keys');
-  }
-
+  // Round-robin through available keys with better distribution
   lastIdx = (lastIdx + 1) % availableKeys.length;
   const selectedKey = availableKeys[lastIdx];
 
@@ -176,14 +200,15 @@ export const initWagmiClient = (client: MinimalWagmiClient) => {
 
 // Ultra-smart fetch with multi-tier fallback
 export const ultraSmartFetch = async (
-  requestData: { [key: string]: unknown },
+  requestData: Record<string, unknown> | Array<Record<string, unknown>>,
   options: RequestInit = {},
   maxRetries = 6
 ): Promise<unknown> => {
-  // Проверяем доступность fetch (может отсутствовать в build time)
   if (typeof fetch === 'undefined') {
     throw new Error('fetch is not available during build time');
   }
+
+  const isBatchRequest = Array.isArray(requestData);
 
   let attempt = 0;
   let lastError: Error | null = null;
@@ -192,22 +217,26 @@ export const ultraSmartFetch = async (
     const endpoint = getBestEndpoint();
 
     try {
-      // Tier 3: Use wagmi public client
-  if (endpoint.type === 'wagmi' && wagmiPublicClient) {
-        // Handle different request types for wagmi
-        if (requestData.method === 'eth_getBalance') {
-          const params = requestData.params as string[];
-          if (wagmiPublicClient.getBalance) {
-            return await wagmiPublicClient.getBalance({
-              address: params[0] as `0x${string}`,
-            });
+      if (!isBatchRequest && endpoint.type === 'wagmi' && wagmiPublicClient) {
+        const payload = requestData as Record<string, unknown>;
+
+        switch (payload.method) {
+          case 'eth_getBalance': {
+            const params = payload.params as string[] | undefined;
+            if (wagmiPublicClient.getBalance && params?.[0]) {
+              return await wagmiPublicClient.getBalance({
+                address: params[0] as `0x${string}`,
+              });
+            }
+            throw new Error('wagmi getBalance unavailable');
           }
-          throw new Error('wagmi getBalance unavailable');
-        }
-        if (requestData.method === 'eth_call') {
-          const params = requestData.params as Array<{ to: string; data: string }>;
-          if (params[0] && params[0].to && params[0].data) {
-            if (wagmiPublicClient.call) {
+          case 'eth_call': {
+            const params = payload.params as Array<{ to: string; data: string }> | undefined;
+            if (
+              params?.[0]?.to &&
+              params?.[0]?.data &&
+              wagmiPublicClient.call
+            ) {
               return await wagmiPublicClient.call({
                 to: params[0].to as `0x${string}`,
                 data: params[0].data as `0x${string}`,
@@ -215,76 +244,79 @@ export const ultraSmartFetch = async (
             }
             throw new Error('wagmi call unavailable');
           }
-        }
-        if (requestData.method === 'eth_blockNumber') {
-          if (wagmiPublicClient.getBlockNumber) {
-            return await wagmiPublicClient.getBlockNumber();
+          case 'eth_blockNumber': {
+            if (wagmiPublicClient.getBlockNumber) {
+              return await wagmiPublicClient.getBlockNumber();
+            }
+            throw new Error('wagmi getBlockNumber unavailable');
           }
-          throw new Error('wagmi getBlockNumber unavailable');
+          default:
+            currentTier = 1;
+            continue;
         }
-
-        // For other methods, fall back to RPC
-        currentTier = 1;
-        continue;
       }
 
-      // Tier 1 & 2: HTTP requests
-      const response = await fetch(endpoint.url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...options.headers,
-        },
-        body: JSON.stringify(requestData),
-        ...options,
-      });
+      const response = await runWithThrottle(() =>
+        fetch(endpoint.url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...options.headers,
+          },
+          body: JSON.stringify(requestData),
+          ...options,
+        })
+      );
 
       if (response.status === 429) {
         if (endpoint.type === 'alchemy') {
-          markKeyAsFailed(getAlchemyKey());
+          const failingKey = extractAlchemyKeyFromUrl(endpoint.url);
+          if (failingKey) {
+            markKeyAsFailed(failingKey);
+          }
         }
         currentTier = Math.min(currentTier + 1, 2);
-        throw new Error(`Rate limited: ${response.status}`);
+        throw new Error('RPC rate limit exceeded (429)');
       }
 
       if (response.status >= 500) {
         if (endpoint.type === 'alchemy') {
-          markKeyAsFailed(getAlchemyKey());
+          const failingKey = extractAlchemyKeyFromUrl(endpoint.url);
+          if (failingKey) {
+            markKeyAsFailed(failingKey);
+          }
         }
-        throw new Error(`Server error: ${response.status}`);
+        throw new Error(`Upstream RPC error (${response.status})`);
       }
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const result = await response.json();
-
-      // Log successful tier usage
-      if (attempt > 0) {
-      }
-
-      return result;
+      return await response.json();
     } catch (error) {
       lastError = error as Error;
       attempt++;
 
       if (attempt <= maxRetries) {
-        // Escalate tier on failure
         if (endpoint.type === 'alchemy') {
           currentTier = 1;
         } else if (endpoint.type === 'rpc') {
           currentTier = 2;
         }
 
-        // Exponential backoff
         const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
   }
 
-  throw lastError || new Error('All provider tiers exhausted');
+  const friendlyMessage =
+    (lastError?.message?.includes('rate limit') ||
+      lastError?.message?.includes('429'))
+      ? 'RPC rate limits reached. Please retry shortly.'
+      : lastError?.message || 'All provider tiers exhausted';
+  throw new Error(friendlyMessage);
 };
 
 // Legacy compatibility functions
@@ -315,6 +347,8 @@ export const getRotationStats = () => {
 
   return {
     currentTier,
+    totalKeys: ALCHEMY_KEYS.length,
+    activeKeys: ALCHEMY_KEYS.filter(k => !failedKeys.has(k)).length,
     failedKeys: Array.from(failedKeys).map(k => k.slice(0, 8) + '...'),
     stats,
     lastResetTime: new Date(lastResetTime).toISOString(),
@@ -348,6 +382,10 @@ export const getRotationStats = () => {
  * // Legacy compatibility
  * const url = getAlchemyUrl('rpc')
  * const response = await smartAlchemyFetch(requestData)
+ *
+ * // Get key rotation statistics
+ * const stats = getRotationStats()
+ * console.log('API Key Stats:', stats)
  */
 
 

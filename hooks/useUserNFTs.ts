@@ -1,9 +1,10 @@
-'use client';
+﻿﻿'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { resolveIpfsUrl } from '@/lib/ipfs';
 import { alchemyFetch } from '@/lib/alchemyFetch';
+import { useMonadNetwork } from '@/hooks/useMonadNetwork';
 
 export interface AlchemyNFT {
   contract: {
@@ -29,13 +30,20 @@ export interface AlchemyNFT {
     format: string;
     bytes?: number;
   }>;
+  image?: {
+    cachedUrl?: string;
+    pngUrl?: string;
+    thumbnailUrl?: string;
+    raw?: string;
+  };
   metadata: {
     name?: string;
     description?: string;
     image?: string;
+    updatedAt?: string;
     attributes?: Array<{
       trait_type: string;
-      value: any;
+      value: string | number | boolean;
     }>;
   };
   timeLastUpdated: string;
@@ -83,12 +91,12 @@ export const decimalToHex = (decimal: string): string => {
 };
 
 // Function to get tokenId in decimal format
-export const getTokenIdAsDecimal = (nft: any): string => {
+export const getTokenIdAsDecimal = (nft: Partial<AlchemyNFT> & { tokenId?: string; id?: { tokenId: string } }): string => {
   // 1) Try to extract ID from name/title (e.g. "CrazyCube #3430")
-  const nameField = nft.metadata?.name || nft.title || nft.name || '';
-  const match = nameField.match(/#(\d+)/);
-  if (match && match[1]) {
-    return match[1];
+  const nameField = nft.metadata?.name || (nft as AlchemyNFT).title || '';
+  const idMatch = /#(\d+)/.exec(nameField);
+  if (idMatch?.[1]) {
+    return idMatch[1];
   }
 
   // 2) Check if tokenId is already a string (from useAlchemyNfts)
@@ -109,23 +117,29 @@ export const getTokenIdAsDecimal = (nft: any): string => {
 
 // Function to get NFT image
 export const getNFTImageRaw = (nft: AlchemyNFT): string => {
-  let imageUrl = '';
+  let imageUrl =
+    nft.image?.cachedUrl ||
+    nft.image?.pngUrl ||
+    nft.media?.[0]?.gateway ||
+    nft.media?.[0]?.raw ||
+    '';
 
-  // Check media array
-  if (nft.media && nft.media.length > 0 && nft.media[0]) {
-    imageUrl = nft.media[0].gateway || nft.media[0].raw;
-  }
-
-  // If not in media, check metadata
+  // If not in image/media, check metadata
   if (!imageUrl && nft.metadata?.image) {
     imageUrl = nft.metadata.image;
   }
 
-  return imageUrl;
+  // If we still don't have an image URL, return empty string
+  return imageUrl || '';
 };
 
 export const getNFTImage = (nft: AlchemyNFT): string => {
-  return resolveIpfsUrl(getNFTImageRaw(nft));
+  // If tokenId is available, prefer the local path
+  const tokenId = getTokenIdAsDecimal(nft as Partial<AlchemyNFT>);
+  if (tokenId) return `/nft/${tokenId}.webp`;
+
+  const raw = getNFTImageRaw(nft);
+  return resolveIpfsUrl(raw) || '';
 };
 
 // Function to get NFT name
@@ -134,23 +148,26 @@ export const getNFTName = (
 ): string => {
   // Handle different NFT object structures
   if ('title' in nft || 'metadata' in nft) {
+    const alchemyNft = nft as AlchemyNFT;
     return (
-      (nft as AlchemyNFT).title ||
-      (nft as AlchemyNFT).metadata?.name ||
-      `Token #${getTokenIdAsDecimal(nft as any)}`
+      alchemyNft.title ||
+      alchemyNft.metadata?.name ||
+      `Token #${getTokenIdAsDecimal(alchemyNft)}`
     );
   }
 
   // For simple objects with just tokenId
-  return `Token #${getTokenIdAsDecimal(nft as any)}`;
+  return `Token #${getTokenIdAsDecimal(nft)}`;
 };
 
 export function useUserNFTs(): UseUserNFTsReturn {
   const { address, isConnected } = useAccount();
+  const { getBatchSize, getRetrySettings } = useMonadNetwork(); // Use Monad network optimizations
   const [nfts, setNfts] = useState<AlchemyNFT[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const fetchNFTs = async () => {
+  
+  const fetchNFTs = React.useCallback(async () => {
     if (!address || !isConnected) {
       setNfts([]);
       return;
@@ -160,24 +177,28 @@ export function useUserNFTs(): UseUserNFTsReturn {
     setError(null);
 
     try {
-      // Build query string manually to keep 'contractAddresses[]' without URL-encode.
+      // Use optimized batch size for Monad network - doubled as requested
+      const batchSize = getBatchSize() * 2; // 50 instead of 25
       const parts: string[] = [
         `owner=${address}`,
         'withMetadata=true',
-        'pageSize=100',
+        `pageSize=${batchSize}`,
       ];
       CONTRACT_ADDRESSES.forEach(addr => {
         parts.push(`contractAddresses[]=${addr}`);
       });
       const queryPath = `/getNFTsForOwner?${parts.join('&')}`;
 
+      // Use optimized retry settings for Monad network
+      const retrySettings = getRetrySettings();
+      
       // Use alchemyFetch with automatic key rotation and retry logic
       const response = await alchemyFetch('nft', queryPath, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
-      });
+      }, retrySettings.maxRetries);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -188,19 +209,21 @@ export function useUserNFTs(): UseUserNFTsReturn {
 
       const userNFTs: AlchemyNFT[] = data.ownedNfts || [];
 
-      // Try to enrich NFTs that lack media/image via getNFTMetadata
+      // Improved enrichment with better error handling for DNS issues
       const enriched = await Promise.all(
         userNFTs.map(async (item: AlchemyNFT) => {
           const hasImage = getNFTImage(item) !== '';
           if (hasImage) return item;
+          
           try {
             if (!item.id?.tokenId) return item;
             const metaPath = `/getNFTMetadata?contractAddress=${item.contract.address}&tokenId=${hexToDecimal(item.id.tokenId)}`;
             const metaRes = await alchemyFetch('nft', metaPath, {
               method: 'GET',
-            });
+            }, retrySettings.maxRetries);
             if (!metaRes.ok) throw new Error('meta');
             const meta = await metaRes.json();
+            
             // merge metadata/media fields if present
             if (meta.rawMetadata) {
               item.metadata = meta.rawMetadata;
@@ -208,7 +231,10 @@ export function useUserNFTs(): UseUserNFTsReturn {
             if (meta.media && Array.isArray(meta.media) && meta.media.length) {
               item.media = meta.media;
             }
-          } catch (e) {}
+          } catch (e) {
+            // Silently fail for individual NFTs to prevent blocking the entire list
+            console.warn(`Failed to enrich NFT ${item.id?.tokenId}:`, e);
+          }
           return item;
         })
       );
@@ -219,11 +245,11 @@ export function useUserNFTs(): UseUserNFTsReturn {
     } finally {
       setLoading(false);
     }
-  };
+  }, [address, isConnected, getBatchSize, getRetrySettings]);
 
   useEffect(() => {
     fetchNFTs();
-  }, [address, isConnected]);
+  }, [address, isConnected, fetchNFTs]);
 
   return {
     nfts,

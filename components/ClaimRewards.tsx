@@ -32,8 +32,12 @@ import {
 
 const formatRewardValue = (wei: string): string => {
   try {
+    // Проверка на undefined/null/пустую строку
+    if (!wei || wei === '0') return '0';
     // Return only the integer part, no decimals, no grouping.
-    const [whole] = formatEther(BigInt(wei)).split('.');
+    const formatted = formatEther(BigInt(wei));
+    if (!formatted) return '0';
+    const [whole] = formatted.split('.');
     return whole ?? '0';
   } catch {
     return '0';

@@ -6,12 +6,10 @@ import type { NFT } from '@/types/nft';
 import { getColor, getLabel } from '@/lib/rarity';
 import { Star } from 'lucide-react';
 
-/* Helper to resolve ipfs:// links */
-const resolveImage = (url?: string | null) => {
-  if (!url) return '/placeholder.svg';
-  if (url.startsWith('ipfs://'))
-    return `https://nftstorage.link/ipfs/${url.slice(7)}`;
-  return url;
+/* Prefer local image when tokenId is available, otherwise use placeholder */
+const resolveImage = (url?: string | null, tokenId?: string | number) => {
+  if (tokenId) return `/nft/${tokenId}.webp`;
+  return '/images/placeholder.webp';
 };
 
 interface Props {
@@ -37,7 +35,7 @@ export default function StatsNFTCard({ nft, delay = 0, onSelect }: Props) {
   }
   return (
     <UnifiedNftCard
-      imageSrc={resolveImage(nft.image)}
+      imageSrc={resolveImage(nft.image, nft.tokenId)}
       tokenId={nft.tokenId}
       title={nft.name}
       rarityLabel={getLabel(nft.stars || 1) || 'Common'}

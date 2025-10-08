@@ -37,7 +37,7 @@ export default function NalaInfoCube() {
           className='fixed bottom-0 z-50 select-none pointer-events-none'
         >
           <div className='relative w-[160px] h-[160px]'>
-            <Image src='/images/nala1.png' alt='Nala' fill priority />
+            <Image src='/images/nala1.png' alt='Nala' fill sizes='160px' />
             {/* bubble appears after 2s and hides after 10s */}
             <motion.div
               initial={{ scale: 0, opacity: 0 }}

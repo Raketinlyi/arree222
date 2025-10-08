@@ -55,6 +55,7 @@ function NFTPingCardComponent({
   tooltipsEnabled = true,
 }: NFTPingCardProps) {
   const tokenIdDec = nft.tokenId.toString();
+  const fallbackImageSrc = nft.image || '/images/placeholder.webp';
   // Removed isLiteMode - always show full effects
   const { getNFTGameData, pingNFT, isConnected, pingInterval } =
     useCrazyOctagonGame();
@@ -509,13 +510,15 @@ function NFTPingCardComponent({
             <div className='aspect-square rounded-lg overflow-hidden relative w-full shadow-lg max-w-[140px] mx-auto ring-2 ring-white/20'>
               {nft.image ? (
                 <IpfsImage
-                  src={nft.image}
+                  src={fallbackImageSrc}
                   alt={`CrazyCube #${tokenIdDec}`}
                   width={140}
                   height={140}
                   className='w-full h-full object-cover'
-                  priority={index < 6}
-                  loading={index < 6 ? 'eager' : 'lazy'}
+                  loading={index === 0 ? 'eager' : 'lazy'}
+                  tokenId={tokenIdDec}
+                  fallbackSrc={fallbackImageSrc}
+                  index={index}
                 />
               ) : (
                 <div className='w-full h-full bg-gradient-to-br from-[#C4B5FD] to-[#93C5FD] flex items-center justify-center' />
@@ -758,15 +761,15 @@ function NFTPingCardComponent({
               {withTooltip(
               <span
                 className={cn(
-                  'tabular-nums font-mono font-black text-[10px] ml-2 text-right truncate max-w-[60%] drop-shadow-lg px-2 py-1 rounded-md text-black',
+                  'tabular-nums font-mono font-black text-xs ml-2 text-right truncate max-w-[60%] drop-shadow-lg px-2 py-1 rounded-md',
                   hasActiveCooldown && parseFloat(lockedOcta.toString()) > 0
-                    ? 'bg-pink-600/25 animate-pulse backdrop-blur-sm shadow-[0_0_8px_rgba(236,72,153,0.4)]'
-                    : 'bg-pink-600/20 shadow-[0_0_6px_rgba(236,72,153,0.2)]'
+                    ? 'bg-pink-600/30 text-white animate-pulse backdrop-blur-sm shadow-[0_0_10px_rgba(236,72,153,0.5)]'
+                    : 'bg-pink-600/25 text-white shadow-[0_0_8px_rgba(236,72,153,0.3)]'
                 )}
                 title={`${formatWithSeparators(lockedOcta)} OCTAA locked`}
                 aria-label={`${formatWithSeparators(lockedOcta)} OCTAA locked`}
               >
-                <span className='font-black text-black'>
+                <span className='font-black text-white'>
                   {formatOCTAA(lockedOcta)}
                 </span>
               </span>,
@@ -829,4 +832,3 @@ export default React.memo(NFTPingCardComponent, (prev, next) => {
     prev.nft.rewardBalance === next.nft.rewardBalance
   );
 });
-

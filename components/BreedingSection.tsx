@@ -4,8 +4,8 @@ import React, { useState } from 'react';
 import {
   useUserNFTs,
   getTokenIdAsDecimal,
-  getNFTImage,
   getNFTName,
+  AlchemyNFT,
 } from '@/hooks/useUserNFTs';
 import { useMultipleNFTGameInfo } from '@/hooks/useNFTGameData';
 import { useCrazyOctagonGame } from '@/hooks/useCrazyOctagonGame';
@@ -25,20 +25,10 @@ import {
   formatOCTAA,
   formatSmart,
 } from '@/utils/formatNumber';
+import { IpfsImage } from '@/components/IpfsImage';
 
 interface BreedableNFTProps {
-  nft: { 
-    id: { tokenId: string }; 
-    contract: { address: string }; 
-    title: string; 
-    description: string; 
-    media: { gateway: string; thumbnail: string; raw: string; format: string; bytes?: number }[];
-    balance: string;
-    tokenUri: { gateway: string; raw: string };
-    metadata: { name?: string; description?: string; image?: string; attributes?: { trait_type: string; value: unknown }[] };
-    timeLastUpdated?: string;
-    contractMetadata?: unknown;
-  };
+  nft: AlchemyNFT;
   gameInfo: { canBreed?: boolean; breedCooldown?: number; currentStars?: number; rarity?: number; isActivated?: boolean } | undefined;
   isSelected: boolean;
   onSelect: (tokenId: string) => void;
@@ -53,6 +43,7 @@ const BreedableNFT = ({
   disabled,
 }: BreedableNFTProps) => {
   const { t } = useTranslation();
+  const tokenIdDecimal = getTokenIdAsDecimal(nft);
 
   const formatTimeLeft = (seconds: number): string => {
     if (seconds === 0) return t('status.ready', 'Ready!');
@@ -85,10 +76,13 @@ const BreedableNFT = ({
       >
         <CardContent className='p-4'>
           <div className='relative'>
-            <img
-              src={nft ? getNFTImage(nft as any) : ''}
-              alt={nft ? getNFTName(nft as any) : ''}
+            <IpfsImage
+              src="" // Не используем внешний src, только tokenId
+              alt={getNFTName(nft)}
+              width={200}
+              height={200}
               className='w-full h-32 object-cover rounded-lg mb-3'
+              tokenId={tokenIdDecimal} // Передаем tokenId для локального изображения
             />
 
             {/* Selection indicator */}
@@ -127,7 +121,7 @@ const BreedableNFT = ({
 
           <div className='space-y-2'>
             <h4 className='font-semibold text-orange-100 text-sm truncate'>
-              {getNFTName(nft as any)}
+              {getNFTName(nft)}
             </h4>
 
             <div className='flex justify-between text-xs'>
@@ -274,18 +268,18 @@ export const BreedingSection = () => {
             description: `Breeding NFT #${selectedParents[0] as string} with NFT #${selectedParents[1] as string}`,
           });
           setSelectedParents([]); // Clear selection
-        } catch (breedError: any) {
+        } catch (breedError: unknown) {
           toast({
             title: 'Breeding Failed',
-            description: breedError.message || 'Failed to breed NFTs',
+            description: (breedError as Error).message || 'Failed to breed NFTs',
             variant: 'destructive',
           });
         }
       }, 3000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Transaction Failed',
-        description: error.message || 'Failed to process transaction',
+        description: (error as Error).message || 'Failed to process transaction',
         variant: 'destructive',
       });
     }
@@ -390,14 +384,22 @@ export const BreedingSection = () => {
                   const gameInfo = nftInfos.find(
                     info => info.tokenId === parentId
                   );
+                  const tokenIdDecimal = nft ? getTokenIdAsDecimal(nft) : '0';
                   return (
                     <div key={parentId} className='flex items-center gap-2'>
                       <div className='text-center'>
-                        <img
-                          src={nft ? getNFTImage(nft) : ''}
-                          alt={nft ? getNFTName(nft) : ''}
-                          className='w-16 h-16 rounded-lg border-2 border-pink-500/50'
-                        />
+                        {nft ? (
+                          <IpfsImage
+                            src="" // Не используем внешний src, только tokenId
+                            alt={getNFTName(nft)}
+                            width={64}
+                            height={64}
+                            className='w-16 h-16 rounded-lg border-2 border-pink-500/50'
+                            tokenId={tokenIdDecimal} // Передаем tokenId для локального изображения
+                          />
+                        ) : (
+                          <div className='w-16 h-16 rounded-lg border-2 border-pink-500/50 bg-gray-200' />
+                        )}
                         <div className='text-xs text-pink-300 mt-1'>
                           #{parentId} ({gameInfo?.currentStars}⭐)
                         </div>

@@ -31,21 +31,15 @@ export const NFTImage: React.FC<NFTImageProps> = ({
       return '/images/revived-nft-placeholder.svg';
     }
     if (imageError) {
-      return '/placeholder.svg';
+      return '/images/placeholder.webp';
     }
     
-    // Пробуем разные форматы NFT изображений
-    const possibleSources = [
-      `/images/${tokenId}.jpg`,
-      `/images/${tokenId}.png`,
-      `/images/cube${tokenId}.png`,
-      `/images/nft_${tokenId}.jpg`,
-    ];
-    
-    return possibleSources[0] ?? '/placeholder.svg'; // Начинаем с первого, fallback если undefined
+    // Пробуем локальное изображение первым
+    return `/nft/${tokenId}.webp`;
   };
 
   const handleImageError = () => {
+    // Если локальное изображение не загрузилось, показываем плейсхолдер
     setImageError(true);
     setIsLoading(false);
   };
@@ -55,35 +49,24 @@ export const NFTImage: React.FC<NFTImageProps> = ({
   };
 
   return (
-    <div 
-      className={cn(
-        "relative overflow-hidden rounded-lg",
-        status === 'burned' && "ring-2 ring-red-500/50",
-        status === 'revived' && "ring-2 ring-green-500/50",
-        className
-      )}
-      style={{ width: size, height: size }}
-    >
-      {/* Loading skeleton */}
-      {isLoading && (
-        <div className="absolute inset-0 bg-gray-200 animate-pulse rounded-lg" />
-      )}
-      
-      {/* Main image */}
+    <div className="relative inline-block">
       <Image
         src={getImageSrc()}
         alt={alt || `NFT #${tokenId}`}
         width={size}
         height={size}
         className={cn(
-          "object-cover transition-opacity duration-300",
+          "rounded-lg object-cover transition-opacity duration-300",
           isLoading ? "opacity-0" : "opacity-100",
           status === 'burned' && "grayscale contrast-125",
-          status === 'revived' && "brightness-110 saturate-125"
+          status === 'revived' && "brightness-110 saturate-125",
+          className
         )}
         onError={handleImageError}
         onLoad={handleImageLoad}
         priority={false}
+        placeholder="empty"
+        sizes="(max-width: 768px) 90vw, 512px"
       />
       
       {/* Status overlay */}

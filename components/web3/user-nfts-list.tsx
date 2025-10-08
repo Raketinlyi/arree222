@@ -107,7 +107,8 @@ export default function UserNftsList() {
           const data = gameDataList[idx];
           const tokenId = nft.tokenId.toString();
 
-          const imageSrc = nft.image || '/icons/favicon-180x180.png';
+          // Use local image path when tokenId is available, otherwise use placeholder
+          const imageSrc = nft.tokenId ? `/nft/${nft.tokenId}.webp` : '/images/placeholder.webp';
           const rarityKey =
             typeof nft.rarity === 'string' ? nft.rarity.toLowerCase() : '';
           const fallbackRarityIndex = rarityIndexByLabel[rarityKey] ?? 0;
@@ -255,7 +256,7 @@ export default function UserNftsList() {
                     <span className='text-slate-400 text-xs flex items-center gap-1'>
                       {nft.image && (
                         <Image
-                          src={nft.image}
+                          src={nft.tokenId ? `/nft/${nft.tokenId}.webp` : '/images/placeholder.webp'}
                           alt={`NFT #${nft.tokenId}`}
                           width={32}
                           height={32}
@@ -327,7 +328,7 @@ export default function UserNftsList() {
                     <span className='text-red-400 text-xs flex items-center gap-1'>
                       {nft.image && (
                         <Image
-                          src={nft.image}
+                          src={nft.tokenId ? `/nft/${nft.tokenId}.webp` : '/images/placeholder.webp'}
                           alt={`NFT #${nft.tokenId}`}
                           width={32}
                           height={32}

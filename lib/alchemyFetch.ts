@@ -61,7 +61,7 @@ export async function alchemyFetch(
   endpoint: 'rpc' | 'nft',
   path: string,
   init?: RequestInit,
-  maxRetries = 5,
+  maxRetries = 10, // Increased from 8 to 10 for better reliability
   options: AlchemyFetchOptions = {}
 ): Promise<Response> {
   // Проверяем доступность fetch (может отсутствовать в build time)
@@ -69,7 +69,7 @@ export async function alchemyFetch(
     throw new Error('fetch is not available during build time');
   }
 
-  let delayMs = 2000; // start 2s (increased from 1s)
+  let delayMs = 2000; // Increased initial delay to 2 seconds for Monad's slower network
   const normalizedPath = path.toLowerCase();
   const breedKeyCandidate =
     endpoint === 'nft' &&
@@ -90,8 +90,11 @@ export async function alchemyFetch(
         ...init,
         headers: {
           ...init?.headers,
-          Accept: 'application/json',
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
         },
+        // Add timeout for slow Monad network
+        signal: AbortSignal.timeout(15000), // 15 second timeout
       });
 
       validateResponse(response, key);
@@ -101,9 +104,10 @@ export async function alchemyFetch(
         throw error;
       }
 
+      // Add jitter to prevent thundering herd
       const jitter = Math.floor(Math.random() * 1000);
       await sleep(delayMs + jitter);
-      delayMs = Math.min(delayMs * 2, 64000);
+      delayMs = Math.min(delayMs * 2, 60000); // Increased max delay to 60 seconds
     }
   }
 

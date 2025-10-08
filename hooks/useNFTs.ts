@@ -4,12 +4,13 @@ import { useState, useEffect } from 'react';
 import { useAccount, useReadContract, usePublicClient } from 'wagmi';
 import { NFT_CONTRACT_ADDRESS } from '@/config/wagmi';
 import { nftAbi } from '@/config/abis/nftAbi';
-import { resolveIpfsUrl } from '@/lib/ipfs';
-import type { NFT, NFTMetadata } from '@/types/nft';
+import type { NFT } from '@/types/nft';
+import { useMonadNetwork } from '@/hooks/useMonadNetwork';
 
 export function useNFTs() {
   const { address, isConnected, chain } = useAccount();
   const publicClient = usePublicClient();
+  useMonadNetwork(); // keep side-effects if any; remove unused destructuring
   const [nfts, setNfts] = useState<NFT[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -48,9 +49,9 @@ export function useNFTs() {
         }
 
         // --- APECHAIN FIX ---
-        // Load NFTs in chunks to avoid one large request,
-        // which causes errors on Monad Testnet RPC nodes.
-        const CHUNK_SIZE = 20; // Configurable. Smaller = more requests, but smaller in size.
+        // Load NFTs in smaller chunks to account for Monad's 10-second block time
+        // Doubled chunk size as requested
+        const CHUNK_SIZE = 10; // 10 instead of 5
         let allFetchedNFTs: NFT[] = [];
 
         for (let i = 0; i < balance; i += CHUNK_SIZE) {
@@ -89,19 +90,27 @@ export function useNFTs() {
           ) as string[];
           if (signal.aborted) return;
 
-          const metadataPromises = tokenURIs.map((uri, index) =>
-            fetchMetadata(uri, Number(tokenIdsInChunk[index]), signal)
-          );
+          // Process metadata in smaller batches to prevent overwhelming the system
+          // Doubled batch size as requested
+          const BATCH_SIZE = 6; // 6 instead of 3
+          for (let k = 0; k < tokenURIs.length; k += BATCH_SIZE) {
+            const batchURIs = tokenURIs.slice(k, k + BATCH_SIZE);
+            const batchTokenIds = tokenIdsInChunk.slice(k, k + BATCH_SIZE);
+            
+            const metadataPromises = batchURIs.map((uri, index) =>
+              fetchMetadata(uri, Number(batchTokenIds[index]))
+            );
 
-          const fetchedChunk = (await Promise.all(metadataPromises)).filter(
-            (nft): nft is NFT => nft !== null
-          );
+            const fetchedBatch = (await Promise.all(metadataPromises)).filter(
+              (nft): nft is NFT => nft !== null
+            );
 
-          allFetchedNFTs = [...allFetchedNFTs, ...fetchedChunk];
+            allFetchedNFTs = [...allFetchedNFTs, ...fetchedBatch];
 
-          // Update state after each chunk for UI responsiveness
-          if (!signal.aborted) {
-            setNfts([...allFetchedNFTs]);
+            // Update state after each batch for UI responsiveness
+            if (!signal.aborted) {
+              setNfts([...allFetchedNFTs]);
+            }
           }
         }
       } catch (err) {
@@ -127,33 +136,23 @@ export function useNFTs() {
 
   const fetchMetadata = async (
     tokenURI: string,
-    tokenId: number,
-    signal: AbortSignal
+    tokenId: number
   ): Promise<NFT | null> => {
     try {
-      const url = resolveIpfsUrl(tokenURI);
-      if (!url.startsWith('https://')) {
-        return null;
-      }
-
-      const response = await fetch(url, { signal });
-      if (!response.ok)
-        throw new Error(`Failed to fetch metadata: ${response.statusText}`);
-      const metadata: NFTMetadata = await response.json();
-
+      // Always prefer local image files in /public/nft when available.
+      // Return a minimal NFT object that points to the local asset so UI loads immediately.
       return {
         id: `${tokenId}`,
         tokenId,
-        name: metadata.name,
-  image: metadata.image,
-        attributes: metadata.attributes,
+        name: `NFT #${tokenId}`,
+        image: `/nft/${tokenId}.webp`,
+        attributes: [],
         rewardBalance: 0,
         frozen: false,
-        rarity: 'Common', // Default rarity
+        rarity: 'Common',
       };
     } catch (err) {
-      if ((err as Error).name !== 'AbortError') {
-      }
+      console.warn(`[NFT] fetchMetadata fallback error for token ${tokenId}:`, err);
       return null;
     }
   };

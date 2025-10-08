@@ -110,8 +110,8 @@ export const NumberWithTooltip: React.FC<NumberWithTooltipProps> = ({
       title={`${tooltip}${suffix ? " " + suffix : ""}`}
       aria-label={`${tooltip}${suffix ? " " + suffix : ""}`}
     >
-      <span className={suffix === "OCTAA" ? "font-black text-black" : ""}>{display}</span>
-      {suffix ? <span className={cn("opacity-80", suffix === "OCTAA" && "font-black text-black")}>{suffix}</span> : null}
+      <span className={suffix === "OCTAA" ? "font-black text-white" : ""}>{display}</span>
+      {suffix ? <span className={cn("opacity-90", suffix === "OCTAA" && "font-bold text-white")}>{suffix}</span> : null}
     </span>
   );
 

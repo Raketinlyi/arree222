@@ -156,7 +156,7 @@ export function BreedingResultModal({
             animate={{ scale: 1, opacity: 1, rotateY: 0 }}
             exit={{ scale: 0.5, opacity: 0, rotateY: 180 }}
             transition={{ type: 'spring', duration: 0.8, bounce: 0.4 }}
-            className='relative max-w-3xl w-full mx-4 p-6 md:p-8 my-auto'
+            className='relative max-w-2xl w-full mx-4 p-4 md:p-6 my-auto'
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close button - ВСЕГДА НАВЕРХУ */}
@@ -220,7 +220,7 @@ export function BreedingResultModal({
                 transition={{ duration: 0.8, type: 'spring', bounce: 0.4 }}
                 className='relative z-10 mb-4'
               >
-                <div className={`relative mx-auto w-64 h-64 md:w-80 md:h-80 rounded-2xl overflow-hidden border-4 ${
+                <div className={`relative mx-auto w-44 h-44 md:w-56 md:h-56 rounded-2xl overflow-hidden border-4 ${
                   hasBonus 
                     ? 'border-yellow-400 shadow-[0_0_60px_rgba(251,191,36,0.8)]'
                     : 'border-cyan-400 shadow-[0_0_60px_rgba(6,182,212,0.8)]'
@@ -237,7 +237,6 @@ export function BreedingResultModal({
                         fill
                         sizes='(max-width: 768px) 320px, (max-width: 1024px) 384px, 448px'
                         className='object-contain'
-                        priority
                         tokenId={newTokenId}
                       />
                       {/* Hologram effect overlay */}

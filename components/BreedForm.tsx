@@ -12,10 +12,11 @@ import {
 } from '@/hooks/useCrazyOctagonGame';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Shield, Sparkles } from 'lucide-react';
+import { Loader2, Shield, Sparkles, Heart, Plus, Zap, Dna } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import DOMPurify from 'isomorphic-dompurify';
 import { formatEther } from 'viem';
+import { IpfsImage } from '@/components/IpfsImage';
 
 export function BreedForm() {
   const { address } = useAccount();
@@ -270,10 +271,13 @@ function ParentColumn({ title, nfts, selected, otherSelected, onSelect, info }: 
                 isSelected ? 'border-purple-400 bg-purple-500/10' : 'border-slate-700 hover:border-purple-400'
               } ${disabled ? 'opacity-40' : ''}`}
             >
-              <img
+              <IpfsImage
                 src={nft.image}
                 alt={nft.name ?? `Cube #${nft.tokenId}`}
+                width={64}
+                height={64}
                 className='h-16 w-16 rounded-md object-cover'
+                tokenId={String(nft.tokenId)}
               />
               <div className='flex-1 text-xs text-slate-300'>
                 <div className='font-semibold text-purple-100'>#{nft.tokenId}</div>

@@ -5,12 +5,11 @@ import { useNFTContractInfo } from '@/hooks/useNFTContractInfo';
 import {
   type AlchemyNFT,
   getTokenIdAsDecimal,
-  getNFTImage,
   getNFTName,
 } from '@/hooks/useUserNFTs';
-import Image from 'next/image';
 import { formatEther } from 'viem';
 import { useTranslation } from 'react-i18next';
+import { IpfsImage } from '@/components/IpfsImage';
 
 interface NFTCardProps {
   nft: AlchemyNFT;
@@ -45,7 +44,6 @@ export function NFTCard({
     lockedOcta,
   } = useNFTContractInfo(tokenIdDecimal);
 
-  const imageUrl = getNFTImage(nft);
   const nftName = getNFTName(nft) || `CrazyCube #${tokenIdDecimal}`;
 
   const { t } = useTranslation();
@@ -64,19 +62,14 @@ export function NFTCard({
       <CardContent className='p-0 relative'>
         {/* NFT Image */}
         <div className='relative aspect-square'>
-          {imageUrl ? (
-            <Image
-              src={imageUrl}
-              alt={nftName}
-              fill
-              className='object-cover'
-              sizes='(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw'
-            />
-          ) : (
-            <div className='w-full h-full bg-gray-800 flex items-center justify-center'>
-              <span className='text-gray-400'>No Image</span>
-            </div>
-          )}
+          <IpfsImage
+            src="" // Не используем внешний src, только tokenId
+            alt={nftName}
+            className='object-cover'
+            fill
+            sizes='(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw'
+            tokenId={tokenIdDecimal} // Передаем tokenId для локального изображения
+          />
 
           {/* Loading overlay for contract data */}
           {isLoadingContractInfo && (

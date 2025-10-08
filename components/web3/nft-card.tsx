@@ -20,6 +20,14 @@ export function NFTCard({ nft, selectable = false, onClick }: NFTCardProps) {
 
   const rarityColors = getColor(nft.stars || 1);
 
+  // Use local image path when tokenId is available, otherwise use placeholder
+  const getImageSrc = (): string => {
+    if (nft.tokenId) {
+      return `/nft/${nft.tokenId}.webp`;
+    }
+    return '/images/placeholder.webp';
+  };
+
   return (
     <motion.div
       whileHover={selectable ? { scale: 1.02 } : {}}
@@ -42,7 +50,7 @@ export function NFTCard({ nft, selectable = false, onClick }: NFTCardProps) {
               className='w-full h-full flex items-center justify-center p-3'
             >
               <Image
-                src={nft.image || '/placeholder.svg'}
+                src={getImageSrc()}
                 alt={`${nft.name} - ${nft.rarity} NFT`}
                 width={230}
                 height={230}

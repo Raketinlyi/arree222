@@ -12,21 +12,17 @@ import {
   SatelliteDish,
   Heart,
 } from 'lucide-react';
-import Image from 'next/image';
 import {
   AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
+  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogCancel,
-  AlertDialogAction,
 } from '@/components/ui/alert-dialog';
-
 import {
   AlchemyNFT,
-  getNFTImage,
   getTokenIdAsDecimal,
 } from '@/hooks/useUserNFTs';
 import { useCrazyOctagonGame, type NFTGameData, type BurnWaitMinutes } from '@/hooks/useCrazyOctagonGame';
@@ -36,6 +32,7 @@ import { getColor, getLabel } from '@/lib/rarity';
 import { BurnEffect } from '@/components/burn-effect';
 import { useTranslation } from 'react-i18next';
 import CardBurnOverlay from '@/components/card-burn-overlay';
+import { IpfsImage } from '@/components/IpfsImage';
 
 interface NFTBurnCardProps {
   nft: AlchemyNFT;
@@ -98,7 +95,6 @@ export default function NFTBurnCard({
   }, [tokenIdDecimal, waitMinutes]);
 
   // Helpers
-  const rarityInfo = (r: number) => ({ color: getColor(r), text: getLabel(r) });
 
   const calcFee = (): string => {
     if (!gameData) return '0';
@@ -174,10 +170,10 @@ export default function NFTBurnCard({
       const updated = await getNFTGameData(tokenIdDecimal);
       setGameData(updated);
       if (onActionComplete) onActionComplete();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: t('burn.error', 'Error'),
-        description: error?.message || t('burn.failed', 'Failed to burn NFT'),
+        description: (error as Error)?.message || t('burn.failed', 'Failed to burn NFT'),
         variant: 'destructive',
       });
     } finally {
@@ -247,21 +243,14 @@ export default function NFTBurnCard({
         <CardHeader className='pb-3'>
           <div className='relative'>
             <div className='aspect-square bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg flex items-center justify-center mb-3 overflow-hidden relative'>
-              {getNFTImage(nft) ? (
-                <Image
-                  src={getNFTImage(nft)}
-                  alt={`CrazyCube #${tokenIdDecimal}`}
-                  width={160}
-                  height={160}
-                  className='w-full h-full object-cover'
-                />
-              ) : (
-                <div className='w-full h-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center'>
-                  <span className='text-xl font-bold text-white'>
-                    {tokenIdDecimal}
-                  </span>
-                </div>
-              )}
+              <IpfsImage
+                src="" // Не используем внешний src, только tokenId
+                alt={`CrazyCube #${tokenIdDecimal}`}
+                width={160}
+                height={160}
+                className='w-full h-full object-cover'
+                tokenId={tokenIdDecimal} // Передаем tokenId для локального изображения
+              />
 
               {/* 🔥 Overlay burn animation tied to current step */}
               {step !== 'idle' && (
@@ -279,10 +268,10 @@ export default function NFTBurnCard({
 
             {gameData && (
               <Badge
-                className={`absolute top-1.5 right-1.5 ${rarityInfo(gameData.rarity).color} text-white text-xs`}
+                className={`absolute top-1.5 right-1.5 ${getColor(gameData.rarity)} text-white text-xs`}
               >
                 <Star className='w-2 h-2 mr-0.5' />
-                {rarityInfo(gameData.rarity).text}
+                {getLabel(gameData.rarity)}
               </Badge>
             )}
 
@@ -450,10 +439,10 @@ export default function NFTBurnCard({
       {/* Confirmation dialog */}
       {gameData && (
         <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <AlertDialogContent className='bg-[#2f2b2b]/95 border border-red-500/30 text-gray-100 max-w-md text-[15px]'>
+    <AlertDialogContent className='bg-[#2f2b2b]/95 border border-red-500/30 text-gray-100 max-w-sm text-sm'>
             <AlertDialogHeader>
-              <AlertDialogTitle className='flex items-center text-red-300 text-lg'>
-                <Flame className='w-5 h-5 mr-2' /> {t('burn.confirmDialog.title', { tokenId: tokenIdDecimal })}
+              <AlertDialogTitle className='flex items-center text-red-300 text-base'>
+                <Flame className='w-4 h-4 mr-2' /> {t('burn.confirmDialog.title', { tokenId: tokenIdDecimal })}
               </AlertDialogTitle>
               <div className='space-y-2 text-orange-50'>
                 <div className='bg-yellow-900/30 border border-yellow-500/50 rounded-md p-3 mb-3'>
@@ -479,9 +468,9 @@ export default function NFTBurnCard({
                     OCTAA
                   </span>
                 </div>
-                <div>
+                <div className='text-white'>
                   {t('burn.confirmDialog.fee')}{' '}
-                  <span className='font-mono text-red-300'>
+                  <span className='font-mono font-bold text-white'>
                     {calcFee()} OCTAA
                   </span>
                 </div>

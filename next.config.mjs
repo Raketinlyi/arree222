@@ -1,6 +1,6 @@
-/**
+﻿/**
  * @type {import('next').NextConfig}
- * Optimized for Netlify deployment
+ * Optimized for Vercel deployment
  */
 
 import path from 'path';
@@ -12,12 +12,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const nextConfig = {
-  // Netlify configuration - removed static export to support API routes
-  // output: 'export', // Commented out to enable API routes
-  trailingSlash: true,
-  distDir: 'out',
-  
   // Disable ESLint during build to avoid linting errors
+  reactStrictMode: true,
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -35,41 +31,12 @@ const nextConfig = {
   },
   
   images: {
-    domains: [
-      'nftstorage.link',
-      'ipfs.io',
-      'gateway.pinata.cloud',
-      'cloudflare-ipfs.com',
-      'dweb.link',
-      'ipfs.dweb.link',
-    ],
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'nftstorage.link',
-      },
-      {
-        protocol: 'https',
-        hostname: 'ipfs.io',
-      },
-      {
-        protocol: 'https',
-        hostname: 'gateway.pinata.cloud',
-      },
-      {
-        protocol: 'https',
-        hostname: 'cloudflare-ipfs.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'dweb.link',
-      },
-      {
-        protocol: 'https',
-        hostname: 'ipfs.dweb.link',
-      },
-    ],
-    unoptimized: true, // Required for static export and IPFS
+    // Используем ТОЛЬКО локальные изображения из /public/nft/
+    // IPFS не используется - медленный и ненадежный
+    domains: [],
+    remotePatterns: [], // Пустой - только локальные изображения
+    minimumCacheTTL: 600,
+    formats: ['image/avif', 'image/webp'],
   },
   
   // Webpack configuration for Netlify compatibility
@@ -106,3 +73,4 @@ const nextConfig = {
 };
 
 export default nextConfig;
+

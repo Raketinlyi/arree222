@@ -1,10 +1,12 @@
-// Trusted Types polyfill insertion moved to <head> for early execution
+﻿﻿﻿// Trusted Types polyfill insertion moved to <head> for early execution
 import type React from 'react';
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import Script from 'next/script';
 import ClientLayout from './ClientLayout';
 import '../styles/globals.css';
 import '../styles/mobile-fixes.css';
 import '../styles/burn-effects.css';
-import { Inter } from 'next/font/google';
 import { MobileNavigation } from '@/components/mobile-navigation';
 import ViewportFix from '@/components/ViewportFix';
 
@@ -14,10 +16,39 @@ const inter = Inter({
   variable: '--font-inter',
 });
 
-export const metadata = {
-  title: 'CrazyOctagon - NFT Platform',
+export const metadata: Metadata = {
+  metadataBase: new URL('https://crazyoctagon.xyz'),
+  title: {
+    default: 'CrazyOctagon - NFT Platform',
+    template: '%s | CrazyOctagon',
+  },
   description: 'Where cubes cry and joke!',
   manifest: '/manifest.json',
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: 'CrazyOctagon - NFT Platform',
+    description: 'Where cubes cry and joke!',
+    url: '/',
+    siteName: 'CrazyOctagon',
+    images: [
+      {
+        url: '/images/party-cube.png',
+        width: 1200,
+        height: 630,
+        alt: 'CrazyOctagon hero cube',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'CrazyOctagon - NFT Platform',
+    description: 'Where cubes cry and joke!',
+    images: ['/images/party-cube.png'],
+  },
   icons: {
     icon: [
       { url: '/icons/favicon-180x180.png', sizes: '180x180' },
@@ -29,10 +60,14 @@ export const metadata = {
       { url: '/icons/favicon-180x180.png', sizes: '180x180' },
     ],
   },
-  generator: 'v0.dev',
   other: {
     'next-head-count': '0',
   },
+};
+
+// Add viewport export with themeColor
+export const viewport = {
+  themeColor: '#0ea5e9',
 };
 
 function RootLayout({
@@ -48,14 +83,15 @@ function RootLayout({
           content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no'
         />
         <link rel='manifest' href='/manifest.json' />
-      {/* Tiny Trusted Types polyfill loaded before any other script */}
-        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
-        <script src='/trusted-types-tinyfill.js' suppressHydrationWarning />
+        {/* Use afterInteractive instead of beforeInteractive to avoid chunk loading issues */}
+        <Script
+          src='/trusted-types-tinyfill.js'
+          strategy='afterInteractive'
+        />
       </head>
       <body className={inter.className}>
-              {/* moved to ViewportFix component */}
-      <ViewportFix />
-<ClientLayout>{children}</ClientLayout>
+        <ViewportFix />
+        <ClientLayout>{children}</ClientLayout>
         <MobileNavigation />
       </body>
     </html>
@@ -63,3 +99,5 @@ function RootLayout({
 }
 
 export default RootLayout;
+
+

@@ -135,7 +135,7 @@ export function useAlchemyNftsQuery() {
 
             // Get image from multiple possible sources
             const nftData = nft as any;
-            const imageUrl =
+            const rawImageUrl =
               nftData.metadata?.image ||
               metadata?.image ||
               nftData.media?.[0]?.gateway ||
@@ -143,6 +143,8 @@ export function useAlchemyNftsQuery() {
               nftData.image?.thumbnailUrl ||
               nftData.image?.pngUrl ||
               '/icons/favicon-180x180.png';
+
+            const imageUrl = resolveIpfsUrl(rawImageUrl);
 
             return {
               id: `${tokenIdDec}`,
@@ -280,12 +282,13 @@ export function useAlchemyNftsQuery() {
             tokenId: tokenIdDec,
             name: metadata?.name || nft.title || `CrazyCube #${tokenIdDec}`,
             image: (() => {
-              const img =
-                metadata?.image ||
-                nft.image?.cachedUrl ||
-                nft.image?.pngUrl ||
-                '/icons/favicon-180x180.png';
-              return resolveIpfsUrl(img);
+              // Use local image path when tokenId is available
+              if (tokenIdDec) {
+                return `/nft/${tokenIdDec}.webp`;
+              }
+              
+              // Fallback to placeholder for any external URLs
+              return '/images/placeholder.webp';
             })(),
             attributes: metadata?.attributes || [],
             rewardBalance: 0,
