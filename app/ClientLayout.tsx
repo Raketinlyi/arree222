@@ -24,36 +24,8 @@ import { GlobalLanguageSwitcher } from '@/components/global-language-switcher';
 import EthereumGuard from '@/components/EthereumGuard';
 import { getGlobalAudioElement } from '@/lib/globalAudio';
 import { usePathname } from 'next/navigation';
-import { TooltipProvider } from '@/components/ui/tooltip';
-import { BurnStateProvider } from '@/hooks/use-burn-state';
-import { useNetwork } from '@/hooks/use-network';
-import type { AnimatedLayoutShellProps } from '@/components/layout/AnimatedLayoutShell';
-
-const AnimatedLayoutShell = dynamic<AnimatedLayoutShellProps>(
-  () =>
-    import('@/components/layout/AnimatedLayoutShell').then(
-      mod => mod.AnimatedLayoutShell
-    ),
-  {
-    ssr: false,
-    loading: () => (
-      <div className='relative flex min-h-screen flex-col bg-slate-950/40' />
-    ),
-  }
-);
-
-const SparkProjectiles = dynamic(
-  () =>
-    import('@/components/SparkProjectiles').then(
-      mod => mod.SparkProjectiles
-    ),
-  { ssr: false, loading: () => null }
-);
-
-function DefaultNetworkEnforcer({ currentPath }: { currentPath: string }) {
-  const { isConnected } = useAccount();
-  const {
-    isMonadChain,
+    // Web3Modal initialization moved into client effect below to enable
+    // safer error handling and runtime logging (helps diagnose WalletConnect issues)
     forceSwitchToMonadChain,
   } = useNetwork();
 
@@ -220,6 +192,57 @@ export default function ClientLayout({
 
     initI18n();
     initTrustedTypes();
+    // Initialize Web3Modal here (client-only) so we can log failures and avoid
+    // surprising runtime errors during module evaluation.
+    const initWeb3Modal = () => {
+      try {
+        const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
+        const isEnabled = process.env.NEXT_PUBLIC_WEB3_MODAL_ENABLED !== 'false';
+        if (!isEnabled) {
+          console.info('Web3Modal disabled via NEXT_PUBLIC_WEB3_MODAL_ENABLED');
+          return;
+        }
+        if (!projectId || projectId === 'crazycube-project-id') {
+          console.info('Web3Modal not initialized - missing or placeholder project id');
+          return;
+        }
+
+        const win = window as unknown as { web3modal_initialized?: boolean };
+        if (win.web3modal_initialized) {
+          // Already initialized
+          return;
+        }
+
+        createWeb3Modal({
+          wagmiConfig: config,
+          projectId,
+          enableAnalytics: false,
+          enableOnramp: false,
+          enableSwaps: true,
+          themeMode: 'dark',
+          themeVariables: {
+            '--w3m-accent': '#0EA5E9',
+            '--w3m-border-radius-master': '8px',
+          },
+          featuredWalletIds: [
+            'c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96', // MetaMask
+            '4622a2b2d6af1c9844944291e5e7351a6aa24cd7b23099efac1b2fd875da31a0', // Trust Wallet
+          ],
+          excludeWalletIds: [
+            'a797aa35c0fadbfc1a53e7f675162ed5226968b44a19ee3d24385c64d1d3c393',
+          ],
+        });
+        win.web3modal_initialized = true;
+        console.info('Web3Modal initialized');
+      } catch (err) {
+        // Keep console output for debugging in the browser (do not throw)
+        // eslint-disable-next-line no-console
+        console.error('Failed to initialize Web3Modal', err);
+      }
+    };
+
+    // Kick off initialization after other inits
+    initWeb3Modal();
     // Ensure global audio element exists once on client
     const audio = getGlobalAudioElement();
     let onVisibility: (() => void) | null = null;
