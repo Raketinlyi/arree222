@@ -8,7 +8,7 @@ import { SocialSidebar } from '@/components/social-sidebar';
 import { setupGlobalErrorHandling } from '@/utils/logger';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useEffect, useRef, useState } from 'react';
-import dynamic from 'next/dynamic';
+// dynamic import removed (unused)
 // Import i18n
 import '@/lib/i18n';
 // Import Web3 provider
@@ -24,10 +24,14 @@ import { GlobalLanguageSwitcher } from '@/components/global-language-switcher';
 import EthereumGuard from '@/components/EthereumGuard';
 import { getGlobalAudioElement } from '@/lib/globalAudio';
 import { usePathname } from 'next/navigation';
-    // Web3Modal initialization moved into client effect below to enable
-    // safer error handling and runtime logging (helps diagnose WalletConnect issues)
-    forceSwitchToMonadChain,
-  } = useNetwork();
+import { useNetwork } from '@/hooks/use-network';
+import { BurnStateProvider } from '@/hooks/use-burn-state';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { AnimatedLayoutShell } from '@/components/layout/AnimatedLayoutShell';
+import { SparkProjectiles } from '@/components/SparkProjectiles';
+function DefaultNetworkEnforcer({ currentPath }: { currentPath: string }) {
+  const { isConnected } = useAccount();
+  const { isMonadChain, forceSwitchToMonadChain } = useNetwork();
 
   const hasAttemptedRef = useRef(false);
   const isBridgePage = currentPath.startsWith('/bridge');
