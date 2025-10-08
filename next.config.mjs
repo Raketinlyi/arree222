@@ -4,12 +4,20 @@
  */
 
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
 
 // Fix __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const __dirname = path.dirname(__filename);
+
+const envFile = path.join(__dirname, '.env.production');
+
+if (fs.existsSync(envFile)) {
+  dotenv.config({ path: envFile, override: false });
+}
 
 const nextConfig = {
   // Disable ESLint during build to avoid linting errors

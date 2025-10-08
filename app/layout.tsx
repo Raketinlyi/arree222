@@ -9,6 +9,7 @@ import '../styles/mobile-fixes.css';
 import '../styles/burn-effects.css';
 import { MobileNavigation } from '@/components/mobile-navigation';
 import ViewportFix from '@/components/ViewportFix';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -93,6 +94,7 @@ function RootLayout({
         <ViewportFix />
         <ClientLayout>{children}</ClientLayout>
         <MobileNavigation />
+        <SpeedInsights />
       </body>
     </html>
   );
